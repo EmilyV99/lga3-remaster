@@ -234,12 +234,15 @@ generic script updateSubscr
 				{ //dungeon cover
 					auto type = dm->Type&11b;
 					bool ow = (type == DMAP_OVERWORLD || type == DMAP_BSOVERWORLD);
-					auto widg = pg->GetWidget("dungeoncover");
-					if(widg)
+					subscreenwidget ws[2];
+					ws[0] = pg->GetWidget("dungeoncover");
+					ws[1] = pg->GetWidget("dungeoncover2");
+					for(w : ws)
 					{
-						widg->VisibleFlags[SUBVISIB_CLOSED] = ow;
-						widg->VisibleFlags[SUBVISIB_OPEN] = ow;
-						widg->VisibleFlags[SUBVISIB_SCROLLING] = ow;
+						unless(w) continue;
+						w->VisibleFlags[SUBVISIB_CLOSED] = ow;
+						w->VisibleFlags[SUBVISIB_OPEN] = ow;
+						w->VisibleFlags[SUBVISIB_SCROLLING] = ow;
 					}
 				}
 			}
