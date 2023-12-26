@@ -3,6 +3,12 @@ import "ffcscript.zh"
 import "string.zh"
 
 CONFIG I_ROCSCAPE = 158;
+CONFIG I_MAGICROCK = 169;
+
+CONFIG SFX_HINT = 60;
+CONFIG HINTREP = 3;
+CONFIG HINTMOD = 3;
+DEFINE HINTCLK = HINTREP*HINTMOD;
 
 CONFIG MINUTES_PER_DAY = 4; //Length of a day or night in minutes;
 CONFIG I_NIGHT = 40; //An unused item ID, placed into Link's inventory or removed to change day/night
@@ -228,6 +234,14 @@ generic script DayNight
 	}
 }
 
+void widg_vis(subscreenwidget widg, bool vis)
+{
+	if(!widg) return;
+	widg->VisibleFlags[SUBVISIB_CLOSED] = vis;
+	widg->VisibleFlags[SUBVISIB_OPEN] = vis;
+	widg->VisibleFlags[SUBVISIB_SCROLLING] = vis;
+}
+
 generic script updateSubscr
 {
 	void run()
@@ -245,12 +259,7 @@ generic script updateSubscr
 					ws[0] = pg->GetWidget("dungeoncover");
 					ws[1] = pg->GetWidget("dungeoncover2");
 					for(w : ws)
-					{
-						unless(w) continue;
-						w->VisibleFlags[SUBVISIB_CLOSED] = ow;
-						w->VisibleFlags[SUBVISIB_OPEN] = ow;
-						w->VisibleFlags[SUBVISIB_SCROLLING] = ow;
-					}
+						widg_vis(w, ow);
 				}
 			}
 			{ //passive
@@ -282,13 +291,116 @@ generic script updateSubscr
 					ws[1] = pg->GetWidget("sbctr");
 					for(w : ws)
 					{
-						unless(w) continue;
-						w->VisibleFlags[SUBVISIB_CLOSED] = vis;
-						w->VisibleFlags[SUBVISIB_OPEN] = vis;
-						w->VisibleFlags[SUBVISIB_SCROLLING] = vis;
+						widg_vis(w,vis);
 					}
 				}
 			}
+		}
+	}
+}
+
+generic script MagicRock
+{
+	int type = -1;
+	void run(int delay_seconds)
+	{
+		int delay = delay_seconds*60;
+		auto pg = Game->LoadOSubData(0)->Pages[0];
+		auto enm_itm = pg->GetWidget("enemy_item");
+		auto enm_sec = pg->GetWidget("enemy_secret");
+		auto sec = pg->GetWidget("secret");
+		until(Hero->Item[I_MAGICROCK])
+			Waitframe();
+		type = -1;
+		int hintclk = 0;
+		bool reset = false;
+		while(true)
+		{
+			if(reset || type < 0)
+			{
+				widg_vis(enm_itm, false);
+				widg_vis(enm_sec, false);
+				widg_vis(sec, false);
+				reset = false;
+			}
+			switch(type)
+			{
+				case -1:
+					type = 0;
+					for(int q = 0; q < delay && !type; ++q)
+					{
+						if(Game->Scrolling[SCROLL_DIR] > -1)
+							--q;
+						Waitframe();
+					}
+					if(type) continue;
+					
+					if(ScreenEFlag(SEF_LIST2,SEFL2_ENEMIES_ITEM) && !Screen->State[ST_ITEM])
+						type = 1;
+					else if(ScreenEFlag(SEF_LIST2,SEFL2_ENEMEIS_SECRET) && !Screen->SecretsTriggered())
+						type = 2;
+					else if(ScreenFlag(SF_MISC,SFM_SCRIPT1) && !Screen->SecretsTriggered())
+						type = 3;
+					else if(!Screen->State[ST_SPECIALITEM])
+						switch(Screen->RoomType)
+						{
+							case RT_MAGICUPGRADE:
+							case RT_SPECIALITEM:
+								type = 4;
+								break;
+						}
+					widg_vis(enm_itm, type == 1);
+					widg_vis(enm_sec, type == 2);
+					widg_vis(sec, type >= 3);
+					if(type > 0)
+						hintclk = HINTCLK;
+					break;
+				case 1:
+					if(Screen->State[ST_ITEM])
+					{
+						reset = true;
+						type = 0;
+					}
+					break;
+				case 2:
+				case 3:
+					if(Screen->SecretsTriggered())
+					{
+						reset = true;
+						type = 0;
+					}
+					break;
+				case 4:
+					if(Screen->State[ST_SPECIALITEM])
+					{
+						reset = true;
+						type = 0;
+					}
+					break;
+			}
+			if(hintclk)
+			{
+				unless(hintclk-- % HINTMOD)
+					Audio->PlaySound(SFX_HINT);
+			}
+			Waitframes(5);
+		}
+	}
+}
+generic script MagicRockEvt
+{
+	void run()
+	{
+		auto pg = Game->LoadOSubData(0)->Pages[0];
+		auto enm_itm = pg->GetWidget("enemy_item");
+		auto enm_sec = pg->GetWidget("enemy_secret");
+		auto sec = pg->GetWidget("secret");
+		until(Hero->Item[I_MAGICROCK])
+			Waitframe();
+		while(true)
+		{
+			WaitEvent();
+			MagicRock.type = -1;
 		}
 	}
 }
