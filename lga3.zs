@@ -360,26 +360,32 @@ subscreendata script DayNightTick
 }
 
 const int CT_ICE = 146;//Combo type used for ice, default 'Script 5'
-const int ICE_MAX = 5;//Max speed on ice in pixels per frame, in addition to Link's base walking speed.
-const int ICE_DEF_ACCEL = 0.25;//Default acceleration if none defined, in portion of current speed.
-const int ICE_DEF_DECEL = 0.10;//Default deceleration if none defined, in portion of current speed. Never >1. 1 = dead stop.
+const int ICE_MAX = 2.5;//Max speed on ice in pixels per frame, including Link's base walking speed.
+const int ICE_MAX_TRACT = 1.5;//Max speed on ice in pixels per frame, including Link's base walking speed.
+const int ICE_DEF_ACCEL = 0.015;//Default acceleration if none defined, in portion of current speed.
+const int ICE_DEF_DECEL = 0.010;//Default deceleration if none defined, in portion of current speed. Never >1. 1 = dead stop.
 const int I_TRACT_BOOTS_1 = 154;//Item ID that will cause ice to be half as slippery.
 const int I_TRACT_BOOTS_2 = 155;//Item ID that will cause ice to not be slippery.
-const int base = 4;//base factor for accel/decel when movement is too slow/nonexistent
-ffc script icePhysics{
-	bool isOnIce(){
+const int ICE_MIN_ACCEL = 1;
+
+generic script icePhysics
+{
+	int old_step, is_onice = 0;
+	bool isOnIce()
+	{
 		int ul = GetLayerComboT(0,ComboAt(Hero->X,Hero->Y));
 		int ur = GetLayerComboT(0,ComboAt(Hero->X+15,Hero->Y));
 		int bl = GetLayerComboT(0,ComboAt(Hero->X,Hero->Y+15));
 		int br = GetLayerComboT(0,ComboAt(Hero->X+15,Hero->Y+15));
-		if(ul==CT_ICE||ur==CT_ICE||bl==CT_ICE||br==CT_ICE){
-			return true;
-		} else {return false;}
+		return (ul==CT_ICE||ur==CT_ICE||bl==CT_ICE||br==CT_ICE);
 	}
 
-	void run(int accel, int decel){
-		if(accel==0)accel=ICE_DEF_ACCEL;
-		if(decel==0)decel=ICE_DEF_DECEL;
+	void run(int accel, int decel)
+	{
+		if(accel==0)
+			accel=ICE_DEF_ACCEL;
+		if(decel==0)
+			decel=ICE_DEF_DECEL;
 		int xaccel=0;
 		int yaccel=0;
 		int xdecel=0;
@@ -389,98 +395,129 @@ ffc script icePhysics{
 		bool onIce = false;
 		bool noTract = true;
 		int scrn = 0;
-		while(true){
-			if(Hero->Item[I_TRACT_BOOTS_2])Quit();
-			if(noTract && Hero->Item[I_TRACT_BOOTS_1]){
-				accel/=2;
-				decel*=2;
-				noTract = false;
+		float upmult = 1, downmult = 1, leftmult = 1, rightmult = 1;
+		int max = ICE_MAX;
+		while(true)
+		{
+			while(Screen->ShowingMessage || Game->Scrolling[SCROLL_DIR] > -1)
+				Waitframe();
+			unless(Hero->Item[I_TRACT_BOOTS_2])
+			{
+				if(noTract && Hero->Item[I_TRACT_BOOTS_1])
+				{
+					CONFIG TRACT_SPEEDUP = 4, TRACT_SLOWDOWN = 1/TRACT_SPEEDUP;
+					rightmult = (Vx < 1.5) ? TRACT_SPEEDUP : TRACT_SLOWDOWN;
+					leftmult = (Vx > -1.5) ? TRACT_SPEEDUP : TRACT_SLOWDOWN;
+					downmult = (Vy < 1.5) ? TRACT_SPEEDUP : TRACT_SLOWDOWN;
+					upmult = (Vy > -1.5) ? TRACT_SPEEDUP : TRACT_SLOWDOWN;
+					max = ICE_MAX_TRACT;
+					noTract = false;
+				}
+				else if(!noTract && !Hero->Item[I_TRACT_BOOTS_1])
+				{
+					upmult = downmult = leftmult = rightmult = 1;
+					max = ICE_MAX;
+					noTract = true;
+				}
+				if(!onIce)
+				{
+					Vx=0;
+					Vy=0;
+				}
+				if(!onIce && isOnIce()) //Link has just stepped onto ice
+				{
+					if(Hero->InputDown)
+						Vy+=Hero->Step/100;
+					if(Hero->InputUp)
+						Vy-=Hero->Step/100;
+					if(Hero->InputRight)
+						Vx+=Hero->Step/100;
+					if(Hero->InputLeft)
+						Vx-=Hero->Step/100;
+					if(Vx && Vy)
+					{
+						Vx /= 4;
+						Vy /= 4;
+					}
+					else
+					{
+						Vx /= 2;
+						Vy /= 2;
+					}
+					is_onice = 2;
+					old_step = Hero->Step;
+					Hero->Step = 0;
+				}
+				else if(onIce)
+				{
+					int xm = Max(ICE_MIN_ACCEL,Abs(Vx));
+					int ym = Max(ICE_MIN_ACCEL,Abs(Vy));
+					xaccel = accel * xm;
+					xdecel = decel * xm;
+					yaccel = accel * ym;
+					ydecel = decel * ym;
+					if(Abs(Vy)<max)
+					{
+						if(Hero->InputDown)
+							Vy+=yaccel*downmult;
+						if(Hero->InputUp)
+							Vy-=yaccel*upmult;
+					}
+					if(Abs(Vx)<max)
+					{
+						if(Hero->InputRight)
+							Vx+=xaccel*rightmult;
+						if(Hero->InputLeft)
+							Vx-=xaccel*leftmult;
+					}
+					Vx = Clamp(Vx, -max, max);
+					Vy = Clamp(Vy, -max, max);
+					Hero->MoveXY(Vx,Vy);
+					if(Vx > 0 && !Hero->InputRight)
+						Vx-=xdecel;
+					if(Vx < 0 && !Hero->InputLeft)
+						Vx+=xdecel;
+					if(Vy > 0 && !Hero->InputDown)
+						Vy-=ydecel;
+					if(Vy < 0 && !Hero->InputUp)
+						Vy+=ydecel;
+				}
+				if(Abs(Vy)<0.01) Vy=0;
+				if(Abs(Vx)<0.01) Vx=0;
+				onIce = isOnIce();
 			}
-			if(!onIce){
-				Vx=0;
-				Vy=0;
+			else onIce = false;
+			if(is_onice && !onIce)
+			{
+				Hero->Step = old_step;
+				is_onice = 0;
 			}
-			if(Abs(Vy)<0.1){Vy=0;}
-			if(Abs(Vx)<0.1){Vx=0;}
-			if(!onIce && isOnIce()){//Link has just stepped onto ice
-				if(Hero->InputDown)Vy+=1;
-				if(Hero->InputUp)Vy-=1;
-				if(Hero->InputRight)Vx+=1;
-				if(Hero->InputLeft)Vx-=1;
-			} else if(onIce){
-				if(Abs(Vx)>=0.1){
-					xaccel = accel * Abs(Vx);
-					xdecel = decel * Abs(Vx);
-				} else {xaccel = accel * base; xdecel=decel * base;}
-				if(Abs(Vy)>=0.1){
-					yaccel = accel * Abs(Vy);
-					ydecel = decel * Abs(Vy);
-				} else {yaccel = accel * base; ydecel=decel * base;}
-				if(Abs(Vy)<ICE_MAX){
-					if(Hero->InputDown){Vy+=yaccel;}
-					if(Hero->InputUp){Vy-=yaccel;}
-				}
-				if(Abs(Vx)<ICE_MAX){
-					if(Hero->InputRight){Vx+=xaccel;}
-					if(Hero->InputLeft){Vx-=xaccel;}
-				}
-				if(Vx>0){
-					if(CanWalk(Hero->X,Hero->Y,DIR_RIGHT,1,true)){
-						Hero->X+=Vx;
-						if(!Hero->InputRight)Vx-=xdecel;
-					} else {
-						Vx=0;
-					}
-				} else if(Vx<0){
-					if(CanWalk(Hero->X,Hero->Y,DIR_LEFT,1,true)){
-						Hero->X+=Vx;
-						if(!Hero->InputLeft)Vx+=xdecel;
-					} else {
-						Vx=0;
-					}
-				}
-				if(Vy>0){
-					if(CanWalk(Hero->X,Hero->Y,DIR_DOWN,1,true)){
-						Hero->Y+=Vy;
-						if(!Hero->InputDown)Vy-=ydecel;
-					} else {
-						Vy=0;
-					}
-				} else if(Vy<0){
-					if(CanWalk(Hero->X,Hero->Y,DIR_UP,1,true)){
-						Hero->Y+=Vy;
-						if(!Hero->InputUp)Vy+=ydecel;
-					} else {
-						Vy=0;
-					}
-				}
-			}
-			onIce = isOnIce();
 			Waitframe();
 		}
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Plays a string on Link entering the screen. Can also trigger secrets, either permanently or temporarily.                                  //
-//D0: Number of string to display after beginning string, before ending string                                                              //
-//D1: Button to press to trigger the message display. 0=A, 1=B, 2=L, 3=R.                                                                   //
-//D2: Set to 1 if using Large Link option.                                                                                                  //
-//D3: Set to 1 if you want the message to be readable from any side, 0 if from the bottom only.                                             //
-//D4: Item you want to be deducted to trigger flag. 0=Bomb, 1=Arrow, 2=Rupees, 3=SBombs, 4=Life, 5=Magic, 6=RedPot, 7=GreenPot, 8=BluePot   //
-//---To take an inventory item, take the item's ID number and add 1000 to it. In this case, amount will do nothing.                         //
-//D5: Amount of item to deduct. Does not apply to potion items.                                                                             //
-//D6: Number of flag to replace with a different combo when triggered.                                                                      //
-//D7: Combo ID to be placed in place of every flag of the D6 type.                                                                          //
-//"Messages disappear" and "Messages freeze all action" quest rules should be set. "Run script at screen init" should be set.               //
-//WARNING: Uses the first X Screen->D[] variables, X being the number of this script placed on the same screen.                             //
-// AUTHOR: Emily                                                 //                                               VERSION: 1.0 (1/22/2018) //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const int startMsg = 25; //Set to 0 for no start message (Message displayed before every trade message)
-const int endMsgYes = 34; //Set to 0 for no confirm message (Message displayed if trade is successful)
-const int endMsgNo = 0; //Set to 0 for no deny message (Message displayed if trade in unsuccessful)
-const int afterTriggered = 34; //Set to 0 for no message after trigger (Message displayed if message read again after successful trade)
-ffc script trading{
+ffc script trading
+{
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//Plays a string on interaction. Can also trigger secrets, either permanently or temporarily.                                  //
+	//D0: Number of string to display after beginning string, before ending string                                                              //
+	//D1: Button to press to trigger the message display. 0=A, 1=B, 2=L, 3=R.                                                                   //
+	//D2: Set to 1 if using Large Link option.                                                                                                  //
+	//D3: Set to 1 if you want the message to be readable from any side, 0 if from the bottom only.                                             //
+	//D4: Item you want to be deducted to trigger flag. 0=Bomb, 1=Arrow, 2=Rupees, 3=SBombs, 4=Life, 5=Magic, 6=RedPot, 7=GreenPot, 8=BluePot   //
+	//---To take an inventory item, take the item's ID number and add 1000 to it. In this case, amount will do nothing.                         //
+	//D5: Amount of item to deduct. Does not apply to potion items.                                                                             //
+	//D6: Number of flag to replace with a different combo when triggered.                                                                      //
+	//D7: Combo ID to be placed in place of every flag of the D6 type.                                                                          //
+	//"Messages disappear" and "Messages freeze all action" quest rules should be set. "Run script at screen init" should be set.               //
+	//WARNING: Uses the first X Screen->D[] variables, X being the number of this script placed on the same screen.                             //
+	// AUTHOR: Emily                                                 //                                               VERSION: 1.0 (1/22/2018) //
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	const int startMsg = 25; //Set to 0 for no start message (Message displayed before every trade message)
+	const int endMsgYes = 34; //Set to 0 for no confirm message (Message displayed if trade is successful)
+	const int endMsgNo = 0; //Set to 0 for no deny message (Message displayed if trade in unsuccessful)
+	const int afterTriggered = 34; //Set to 0 for no message after trigger (Message displayed if message read again after successful trade)
     void run(int m,int input,bool largeHitbox,bool anySide, int itemId, int amountOfItem, int comboFlag, int comboReplace){
         int loc = ComboAt(this->X,this->Y);
 		checkTrigger(afterTriggered, input, largeHitbox, anySide, comboFlag, comboReplace, loc);
@@ -591,24 +628,87 @@ ffc script trading{
 	}
 }
 
-ffc script playString{
-	void run(int str, bool secret, bool perm, bool once){
-		while(Hero->Action==LA_SCROLLING){Waitframe();}
+ffc script playString
+{
+	void run(int str, bool secret, bool perm, bool once)
+	{
+		while(Hero->Action==LA_SCROLLING) Waitframe();
 		Waitframes(2);
-		if(!Screen->State[ST_SECRET]||!once){
+		if(!(Screen->State[ST_SECRET]&&once))
 			Screen->Message(str);
-		} else {Quit();}
+		else Quit();
 		Waitframes(5);
-		if(secret){
+		if(secret)
+		{
 			Screen->TriggerSecrets();
-			if(perm){
+			if(perm)
 				Screen->State[ST_SECRET] = true;
-			}
 		}
 	}
 }
 
+item script itemPlayString
+{
+	void run(int str)
+	{
+		Screen->Message(str);
+	}
+}
 
+ffc script stepTrigger
+{
+	void run(int num, int max, bool perm)
+	{
+		while(true)
+		{
+			if(Abs(Hero->X-this->X)<=8 && Abs(Hero->Y-this->Y)<=8)
+			{
+				if(num!=1&&num!=max)
+				{
+					if(Hero->Misc[7]==num-1||Hero->Misc[7]==num)
+						Hero->Misc[7]=num;
+					else
+						Hero->Misc[7]=0;
+				}
+				else if(num==1)
+					Hero->Misc[7]=1;
+				else if(num==max)
+				{
+					if(Hero->Misc[7]==num-1)
+					{
+						Hero->Misc[7]=0;
+						Screen->TriggerSecrets();
+						if(perm)
+							Screen->State[ST_SECRET]=true;
+						Game->PlaySound(SFX_SECRET);
+					}
+					else Hero->Misc[7]=0;
+				}
+			}
+			Waitframe();
+		}
+	}
+}
+
+ffc script TriforceCheck
+{
+	void run(int triforce, int mode)
+	{
+		if(NumTriforcePieces()>=triforce)
+		{
+			if(mode==0)
+				Screen->TriggerSecrets();
+			else if(mode==1)
+			{
+				Screen->TriggerSecrets();
+				Screen->State[ST_SECRET] = true;
+			}
+			else if(mode==2)
+				for(n : Screen->NPCs)
+					n->HP = 0;
+		}
+	}
+}
 
 // TODO
 // TODO
@@ -861,47 +961,6 @@ ffc script diagConveyor{
 
 
 //end diagonalConvyor
-
-
-//start itemPlayString
-item script itemPlayString{
-	void run(int str){
-		Screen->Message(str);
-	}
-}
-//end itemPlayString
-//start stepTrigger
-
-ffc script stepTrigger{
-	void run(int num, int max, bool perm){
-		while(true){
-			if(Abs(Hero->X-this->X)<=8 && Abs(Hero->Y-this->Y)<=8){
-				if(num!=1&&num!=max){
-					if(Hero->Misc[7]==num-1||Hero->Misc[7]==num){
-						Hero->Misc[7]=num;
-					} else{
-						Hero->Misc[7]=0;
-					}
-				} else if(num==1){
-					Hero->Misc[7]=1;
-				} else if(num==max){
-					if(Hero->Misc[7]==num-1){
-						Hero->Misc[7]=0;
-						Screen->TriggerSecrets();
-						if(perm){
-							Screen->State[ST_SECRET]=true;
-						}
-						Game->PlaySound(SFX_SECRET);
-					} else{
-						Hero->Misc[7]=0;
-					}
-				}
-			}
-			Waitframe();
-		}
-	}
-}
-//end stepTrigger
 //start forceMove
 ffc script forceMove{
 	void run(int dir,int spd){
@@ -1423,30 +1482,17 @@ ffc script LockBlock{
 }
 
 //end lockBlock
-//start TriforceCheck
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Do something if Link has a certain number of triforce pieces. Does not check which pieces, only total number.                             //
-//D0: Number of triforce pieces to check for.                                                                                               //
-//D1: What to do if he has that many. 0= trigger secrets temp, 1= trigger secrets perm, 2= kill all enemies on screen(Used w/ Trigger)      //
-// AUTHOR: Emily                                                 //                                               VERSION: 1.0 (1/29/2018) //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-ffc script TriforceCheck{
-	void run(int triforce, int mode){
-		if(NumTriforcePieces()>=triforce){
-			if(mode==0){
-				Screen->TriggerSecrets();
-			} else if(mode==1){
-				Screen->TriggerSecrets();
-				Screen->State[ST_SECRET] = true;
-			} else if(mode==2){
-				for(int i=0;i<Screen->NumNPCs();i++){
-					npc a = Screen->LoadNPC(i);
-					a->HP=0;
-				}
-			}
+
+global script Active
+{
+	void run()
+	{
+		unless(Debug->Testing) return;
+		while(true)
+		{
+			if(Hero->PressEx1)
+				Hero->Item[I_TRACT_BOOTS_1] = !Hero->Item[I_TRACT_BOOTS_1];
+			Waitframe();
 		}
 	}
 }
-//end TriforceCheck
-
-
