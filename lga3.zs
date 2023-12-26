@@ -139,6 +139,13 @@ itemdata script RocsCape
 {
 	void run(int height, int time, int jumpPower)
 	{
+		unless(IsSideview())
+		{
+			if(int sfx = Game->MiscSFX[MISCSFX_ERROR])
+				Game->PlaySound(sfx);
+			return;
+		}
+		
 		if(Hero->Climbing)
 		{
 			Game->PlaySound(SFX_JUMP);
