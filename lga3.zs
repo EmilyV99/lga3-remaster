@@ -187,6 +187,7 @@ global script Init
 	{
 		Game->MCounter[CR_SECONDS] = MAX_COUNTER;
 		Game->Counter[CR_SECONDS] = MINUTES_PER_DAY*60;
+		Game->MCounter[CR_SBOMBS] = 2;
 	}
 }
 generic script DayNight
