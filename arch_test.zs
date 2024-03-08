@@ -78,6 +78,7 @@ global script onLaunch
 								sprintf(cache_seed, "%s", Archipelago::seed);
 								sprintf(cache_slot, "%s", Archipelago::slot);
 
+								Archipelago::send_sync();
 								int locs[0];
 								ResizeArray(locs,Archipelago::num_locs);
 								loop(q : 0=..Archipelago::num_locs)
@@ -286,68 +287,68 @@ generic script AP_Connect_Menu
 bool ignore_next_location_scout = false;
 namespace Archipelago::Settings
 {
-    void ap_get_game(char32 buf) //Return your game name
-    {
-        sprintf(buf, "ZQC LGA3 Remastered");
-    }
-    long items_handling() //return your item handling mode
-    {
-        return 101Lb;
-    }
-    void add_tags(JSONRef ref) //Add your tags
-    {
-        ref->add_indx_str("ZQuest Classic");
-    }
-    void on_room_info(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#RoomInfo
+	void ap_get_game(char32 buf) //Return your game name
+	{
+		sprintf(buf, "ZQC LGA3 Remastered");
+	}
+	long items_handling() //return your item handling mode
+	{
+		return 101Lb;
+	}
+	void add_tags(JSONRef ref) //Add your tags
+	{
+		ref->add_indx_str("ZQuest Classic");
+	}
+	void on_room_info(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#RoomInfo
 		
-    }
-    void on_connected(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connected
+	}
+	void on_connected(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connected
 		ref->sub_find({NULL,{"slot_data"}});
 		ref->print();
-    }
-    void on_item_received(NetworkItem itm, int total_count)
-    {
-        //itemlist is a SINGLE NetworkItem, which has been sent to the player
-        //total_count is how many of this item you now own in total
-        //'mark_item_collected()' is already called for you for this item, just before this.
-    }
-    void on_location_scouts(NetworkItem itemlist)
-    {
-        //itemlist is an ARRAY of NetworkItems, responding to a LocationScouts request
-    }
-    void on_room_update(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#RoomUpdate
+	}
+	void on_item_received(NetworkItem itm, int total_count)
+	{
+		//itemlist is a SINGLE NetworkItem, which has been sent to the player
+		//total_count is how many of this item you now own in total
+		//'mark_item_collected()' is already called for you for this item, just before this.
+	}
+	void on_location_scouts(NetworkItem itemlist)
+	{
+		//itemlist is an ARRAY of NetworkItems, responding to a LocationScouts request
+	}
+	void on_room_update(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#RoomUpdate
 
-    }
-    bool on_print_json(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#PrintJSON
-        //Return true to log the text to the console, false to ignore it.
-        return true;
-    }
-    void on_bounced(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Bounced
-        
-    }
-    void on_retrieved(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Retrieved
-        
-    }
-    void on_set_reply(JSONRef ref)
-    {
-        //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#SetReply
-        
-    }
-    void do_remove_location(int id)
-    {
-        //forcibly mark this location as "already collected"
-        
-    }
+	}
+	bool on_print_json(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#PrintJSON
+		//Return true to log the text to the console, false to ignore it.
+		return true;
+	}
+	void on_bounced(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Bounced
+		
+	}
+	void on_retrieved(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Retrieved
+		
+	}
+	void on_set_reply(JSONRef ref)
+	{
+		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#SetReply
+		
+	}
+	void do_remove_location(int id)
+	{
+		//forcibly mark this location as "already collected"
+		
+	}
 }
