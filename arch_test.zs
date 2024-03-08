@@ -77,6 +77,12 @@ global script onLaunch
 								cache_player_team = Archipelago::player_team;
 								sprintf(cache_seed, "%s", Archipelago::seed);
 								sprintf(cache_slot, "%s", Archipelago::slot);
+
+								int locs[0];
+								ResizeArray(locs,Archipelago::num_locs);
+								loop(q : 0=..Archipelago::num_locs)
+									locs[q] = q;
+								//Archipelago::send_location_scouts_arr(1,locs); //WHY DOES THIS HARD FREEZE ZC??
 								break 2;
 							}
 						}
@@ -272,17 +278,6 @@ generic script AP_Connect_Menu
 		{
 			Waitframe();
 		}
-
-		int num_locs = SizeOfArray(Archipelago::checked_locations);
-		if(Archipelago::AP_DEV_LOG)
-		{
-			printf("[DEV] Found %d locations\n", num_locs);
-		}
-		int locs[0];
-		ResizeArray(locs,num_locs);
-		loop(q : 0=..num_locs)
-			locs[q] = q;
-		//Archipelago::send_location_scouts_arr(1,locs); //WHY DOES THIS HARD FREEZE ZC??
 	}
 }
 
@@ -311,11 +306,14 @@ namespace Archipelago::Settings
     void on_connected(JSONRef ref)
     {
         //https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connected
-
+		ref->sub_find({NULL,{"slot_data"}});
+		ref->print();
     }
-    void on_item_received(NetworkItem itemlist)
+    void on_item_received(NetworkItem itm, int total_count)
     {
-        //itemlist is an ARRAY of NetworkItems, which have been sent to the player
+        //itemlist is a SINGLE NetworkItem, which has been sent to the player
+        //total_count is how many of this item you now own in total
+        //'mark_item_collected()' is already called for you for this item, just before this.
     }
     void on_location_scouts(NetworkItem itemlist)
     {
