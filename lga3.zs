@@ -1,5 +1,5 @@
 #include "std.zh"
-#include "ffcscript.zh"
+#include "arch_test.zs"
 
 namespace LGA3
 {
@@ -26,6 +26,7 @@ bool SelectPressInput(int input){
     else if(input == 1) return Hero->PressB;
     else if(input == 2) return Hero->PressL;
     else if(input == 3) return Hero->PressR;
+	return false;
 }
 void SetInput(int input, bool state){
     if(input == 0) Hero->InputA = state;
@@ -775,6 +776,7 @@ ffc script trading
 				return true;
 			} else{return false;}
 		}
+		return false;
 	}
 }
 
