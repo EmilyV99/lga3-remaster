@@ -307,8 +307,6 @@ namespace Archipelago::Settings
 	void on_connected(JSONRef ref)
 	{
 		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connected
-		ref->sub_find({NULL,{"slot_data"}});
-		ref->print();
 	}
 	void on_item_received(NetworkItem itm, int total_count)
 	{

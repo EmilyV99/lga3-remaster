@@ -1,5 +1,5 @@
 #include "std.zh"
-#include "arch_test.zs"
+#include "lga3_rando.zs"
 
 namespace LGA3
 {
