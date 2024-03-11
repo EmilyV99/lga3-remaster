@@ -73,8 +73,8 @@ global script onLaunch
 							{
 								archipelago_mode = true;
 								//Store seed/slot identifying info, for validation on reconnects
-								cache_player_id = Archipelago::player_id;
-								cache_player_team = Archipelago::player_team;
+								cache_player_id = Archipelago::ap_player_id;
+								cache_player_team = Archipelago::ap_player_team;
 								sprintf(cache_seed, "%s", Archipelago::seed);
 								sprintf(cache_slot, "%s", Archipelago::slot);
 
@@ -83,7 +83,7 @@ global script onLaunch
 								ResizeArray(locs,Archipelago::num_locs);
 								loop(q : 0=..Archipelago::num_locs)
 									locs[q] = q;
-								//Archipelago::send_location_scouts_arr(1,locs); //WHY DOES THIS HARD FREEZE ZC??
+								Archipelago::send_location_scouts_arr(0,locs);
 								break 2;
 							}
 						}
@@ -106,10 +106,10 @@ global script onLaunch
 					RunGenericScriptFrz(scr,{sel});
 					if(Archipelago::status == Archipelago::STATUS_AUTHENTICATED)
 					{
-						if(cache_player_id != Archipelago::player_id)
-							printf("WRONG SLOT: Player ID %d mismatches %d\n",Archipelago::player_id,cache_player_id);
-						else if(cache_player_team != Archipelago::player_team)
-							printf("WRONG SLOT: Player Team %d mismatches %d\n",Archipelago::player_team,cache_player_team);
+						if(cache_player_id != Archipelago::ap_player_id)
+							printf("WRONG SLOT: Player ID %d mismatches %d\n",Archipelago::ap_player_id,cache_player_id);
+						else if(cache_player_team != Archipelago::ap_player_team)
+							printf("WRONG SLOT: Player Team %d mismatches %d\n",Archipelago::ap_player_team,cache_player_team);
 						else if(strcmp(cache_slot,Archipelago::slot))
 							printf("WRONG SLOT: Slot Name '%s' mismatches '%s'\n",Archipelago::slot,cache_slot);
 						else if(strcmp(cache_seed,Archipelago::seed))
@@ -313,10 +313,18 @@ namespace Archipelago::Settings
 		//itemlist is a SINGLE NetworkItem, which has been sent to the player
 		//total_count is how many of this item you now own in total
 		//'mark_item_collected()' is already called for you for this item, just before this.
+		//'itm->localize_item_id()' gives you the item's id relative to the base id
+		//'itm->localize_location_id()' does the same for the location; but this is only valid to do if
+		//    'itm->player_id == Archipelago::ap_player_id'
+		//'itm->player_id' is the ID of the player who sent the item
 	}
-	void on_location_scouts(NetworkItem itemlist)
+	void on_location_scouts(NetworkItem itm)
 	{
-		//itemlist is an ARRAY of NetworkItems, responding to a LocationScouts request
+		//itm is a NetworkItem, which has been hinted via a LocationScouts packet.
+		//'itm->item_id' is the item's string ID
+		//'itm->location_id' is the string ID for the location
+		//'itm->player_id' is the ID of the player who will receive the item
+		printf("At loc '%s': player %d's item '%s'\n", itm->location_id, itm->player_id, itm->item_id);
 	}
 	void on_room_update(JSONRef ref)
 	{
@@ -347,6 +355,6 @@ namespace Archipelago::Settings
 	void do_remove_location(int id)
 	{
 		//forcibly mark this location as "already collected"
-		
+		printf("[REMOVE LOCATION] %d\n", id);
 	}
 }
