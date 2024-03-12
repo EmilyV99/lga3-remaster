@@ -74,7 +74,7 @@ CONFIG STR_NOBOTTLE = 2;
 CONFIG STR_CANTAFFORD = 1;
 ffc script ItemShop
 {
-	void run(int id, bool noDupes, int price, bool potion)
+	void run(int id, bool noDupes, int price, bool potion, int ap_id, int shop_req_bit)
 	{
 		if(Hero->Item[I_WEALTHMEDAL3])
 			price*=.25;
@@ -82,11 +82,32 @@ ffc script ItemShop
 			price*=.5;
 		else if(Hero->Item[I_WEALTHMEDAL])
 			price *=.75;
-		itemdata ic = Game->LoadItemData(id);
+		bool ap_mode = ap_id;
+		itemdata idata = Game->LoadItemData(id);
+		if(ap_mode)
+		{
+			--ap_id;
+			this->Data = AP_DUMMY_COMBO_START+(id-AP_DUMMY_START);
+			this->CSet = idata->CSet;
+			potion = false;
+			noDupes = true;
+		}
+		int req_bit = shop_req_bit ? (1b << (shop_req_bit-1)) : 0;
+		ffcvis(this, false);
+		while(req_bit && ! (refill_shops & req_bit))
+			Waitframe();
 		bool checked = false;
 		while(true)
 		{
-			if(noDupes && Hero->Item[id])
+			if(noDupes && ap_id)
+			{
+				if(Archipelago::checked_location(ap_id))
+				{
+					ffcvis(this, false);
+					Quit();
+				}
+			}
+			else if(noDupes && Hero->Item[id])
 			{
 				ffcvis(this, false);
 				Quit();
@@ -253,7 +274,8 @@ generic script updateSubscr
 			WaitEvent();
 			dmapdata dm = Game->LoadDMapData(Game->CurDMap);
 			{ //active
-				auto pg = Game->LoadASubData(-1)->Pages[0];
+				auto data = Game->LoadASubData(0);
+				auto pg = data->Pages[0];
 				{ //dungeon cover
 					auto type = dm->Type&11b;
 					bool ow = (type == DMAP_OVERWORLD || type == DMAP_BSOVERWORLD);
@@ -265,7 +287,8 @@ generic script updateSubscr
 				}
 			}
 			{ //passive
-				auto pg = Game->LoadPSubData(-1)->Pages[0];
+				auto data = Game->LoadPSubData(0);
+				auto pg = data->Pages[0];
 				{ //rupee
 					int cs = 13;
 					if(Hero->Item[I_WALLET999])
@@ -296,7 +319,8 @@ generic script updateSubscr
 				}
 			}
 			{ //overlay
-				auto pg = Game->LoadOSubData(-1)->Pages[0];
+				auto data = Game->LoadOSubData(0);
+				auto pg = data->Pages[0];
 				{ //dungeon prize
 					bool has_prize = Game->LItems[Game->CurLevel] & LI_TRIFORCE;
 					widg_vis(pg->GetWidget("prize"), has_prize);
