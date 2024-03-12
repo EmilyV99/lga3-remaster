@@ -22,17 +22,17 @@ DEFINE BS_POTIONBLUE = 3;
 DEFINE BS_POTIONFAIRY = 4;
 
 bool SelectPressInput(int input){
-    if(input == 0) return Hero->PressA;
-    else if(input == 1) return Hero->PressB;
-    else if(input == 2) return Hero->PressL;
-    else if(input == 3) return Hero->PressR;
+	if(input == 0) return Hero->PressA;
+	else if(input == 1) return Hero->PressB;
+	else if(input == 2) return Hero->PressL;
+	else if(input == 3) return Hero->PressR;
 	return false;
 }
 void SetInput(int input, bool state){
-    if(input == 0) Hero->InputA = state;
-    else if(input == 1) Hero->InputB = state;
-    else if(input == 2) Hero->InputL = state;
-    else if(input == 3) Hero->InputR = state;
+	if(input == 0) Hero->InputA = state;
+	else if(input == 1) Hero->InputB = state;
+	else if(input == 2) Hero->InputL = state;
+	else if(input == 3) Hero->InputR = state;
 }
 
 CONFIG I_BOTTLE1 = 145;
@@ -669,15 +669,15 @@ ffc script trading
 	const int endMsgYes = 34; //Set to 0 for no confirm message (Message displayed if trade is successful)
 	const int endMsgNo = 0; //Set to 0 for no deny message (Message displayed if trade in unsuccessful)
 	const int afterTriggered = 34; //Set to 0 for no message after trigger (Message displayed if message read again after successful trade)
-    void run(int m,int input,bool largeHitbox,bool anySide, int itemId, int amountOfItem, int comboFlag, int comboReplace){
-        int loc = ComboAt(this->X,this->Y);
+	void run(int m,int input,bool largeHitbox,bool anySide, int itemId, int amountOfItem, int comboFlag, int comboReplace){
+		int loc = ComboAt(this->X,this->Y);
 		checkTrigger(afterTriggered, input, largeHitbox, anySide, comboFlag, comboReplace, loc);
-        while(true){
-            while(!AgainstComboBase(loc,largeHitbox,anySide) || !SelectPressInput(input)) Waitframe();
-            SetInput(input,false);
+		while(true){
+			while(!AgainstComboBase(loc,largeHitbox,anySide) || !SelectPressInput(input)) Waitframe();
+			SetInput(input,false);
 			if(startMsg!=0){Screen->Message(startMsg);Waitframe();}
-            Screen->Message(m);
-            Waitframe();
+			Screen->Message(m);
+			Waitframe();
 			if(TakeItem(itemId,amountOfItem)){
 				if(endMsgYes!=0){Screen->Message(endMsgYes);Waitframe();}
 				triggerCombo(comboFlag, comboReplace, true, false);
@@ -686,9 +686,9 @@ ffc script trading
 				if(endMsgNo!=0){Screen->Message(endMsgNo);Waitframe();}
 			}
 			Waitframe();
-        }
-    }
-    bool AgainstComboBase(int loc, bool largeHitbox, bool anySide){
+		}
+	}
+	bool AgainstComboBase(int loc, bool largeHitbox, bool anySide){
 		if(largeHitbox && !anySide){
 			return Hero->Z == 0 && (Hero->Dir == DIR_UP && Hero->Y == ComboY(loc)+16 && Abs(Hero->X-ComboX(loc)) < 8);
 		} else if (!largeHitbox&&!anySide){
@@ -698,7 +698,7 @@ ffc script trading
 		} else if (!largeHitbox && anySide){
 			return Hero->Z == 0 && ((Hero->Dir == DIR_UP && Hero->Y == ComboY(loc)+8 && Abs(Hero->X-ComboX(loc)) < 8)||(Hero->Dir == DIR_DOWN && Hero->Y == ComboY(loc)-16 && Abs(Hero->X-ComboX(loc)) < 8)||(Hero->Dir == DIR_LEFT && Hero->X == ComboX(loc)+16 && Abs(Hero->Y-ComboY(loc)) < 8)||(Hero->Dir == DIR_RIGHT && Hero->X == ComboX(loc)-16 && Abs(Hero->Y-ComboY(loc)) < 8));
 		} else {return false;}
-    }
+	}
 	
 	void triggerCombo(int flag, int combo, bool secretSFX, bool fromCheck){
 		for(int i = 0;i<=175;i++){
