@@ -35,6 +35,7 @@ global script onLaunch
 		const int NUM_OPTS = 2;
 		int sel = 0;
 		bool end = false;
+		Waitframe();
 		if(first_launch)
 		{
 			while(true)
@@ -2856,11 +2857,7 @@ generic script AP_Connect_Menu
 			sprintf(port,"%s",Archipelago::port);
 		if(Archipelago::slot[0])
 			sprintf(slot,"%s",Archipelago::slot);
-		//*
-		sprintf(ip, "localhost");
-		sprintf(port, "38281");
-		sprintf(slot, "Player1");
-		//*/
+		
 		char32 bufs[] = {ip, port, slot, pwd};
 		char32 lbl1[] = "IP:";
 		char32 lbl2[] = "Port:";
