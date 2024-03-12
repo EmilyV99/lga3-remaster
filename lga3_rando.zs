@@ -1,4 +1,5 @@
 #include "std.zh"
+#include "std_zh/std_extension.zh"
 #include "TypeAString.zh"
 #include "Archipelago.zh"
 #include "EmilyMisc.zh"
@@ -6,6 +7,12 @@
 #includepath "../../../ScriptBank/AP"
 using namespace Emily;
 
+CONFIG AP_HOLDUP_ITEM = 254;
+CONFIG SFX_JINGLE = 20;
+CONFIG AP_DUMMY_START = 240;
+CONFIG AP_DUMMY_COUNT = 6;
+bool first_launch = true;
+bool archipelago_mode = false;
 global script onLaunch
 {
 	CONFIG FONT = FONT_Z1;
@@ -13,8 +20,6 @@ global script onLaunch
 	CONFIG TILE_PTR = 14;
 	CONFIG PTR_WID = 10;
 	CONFIG PTR_HEI = 8;
-	bool first_launch = true;
-	bool archipelago_mode = false;
 
 	int cache_player_id, cache_player_team;
 	char32 cache_seed[1], cache_slot[1];
@@ -31,7 +36,7 @@ global script onLaunch
 		bool end = false;
 		if(first_launch)
 		{
-			loop()
+			while(true)
 			{
 				until(end)
 				{
@@ -94,7 +99,7 @@ global script onLaunch
 				sprintf(port, "%s", Archipelago::port);
 				sprintf(slot, "%s", Archipelago::slot);
 				int sel = 4;
-				loop()
+				while(true)
 				{
 					RunGenericScriptFrz(scr,{sel});
 					if(Archipelago::status >= Archipelago::STATUS_AUTHENTICATED)
@@ -123,12 +128,1866 @@ global script onLaunch
 				}
 			}
 		}
+		if(archipelago_mode)
+		{
+			Archipelago::NetworkItem itm = Archipelago::check_location_info(1);
+			Archipelago::NetworkPlayer plyr = Archipelago::players[itm->player_id-1];
+			Archipelago::NetworkSlot slot = Archipelago::slots[plyr->slot_id-1];
+			printf("At %s, you will find %s's %s\n", itm->location_name, slot->name, itm->item_name);
+
+			Waitframe();
+			Screen->DrawString(7,128,56, FONT, 0x01, -1, TF_CENTERED, "CONNECTED! LOADING...");
+			Waitframe();
+			handle_ap_placements();
+		}
 		first_launch = false;
-		Archipelago::NetworkItem itm = Archipelago::check_location_info(1);
-		Archipelago::NetworkPlayer plyr = Archipelago::players[itm->player_id-1];
-		Archipelago::NetworkSlot slot = Archipelago::slots[plyr->slot_id-1];
-		printf("At %s, you will find %s's %s\n", itm->location_name, slot->name, itm->item_name);
 	}
+}
+
+int refill_shops = 0;
+int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
+{
+	#option STRING_SWITCH_CASE_INSENSITIVE on
+	char32 b2[1];
+	char32 ptr = buf ? buf : b2;
+	ResizeArray(ptr,256);
+	int pickup_id = -1, holdup_id = -1;
+	switch(itm->item_name)
+	{
+		case "Nothing":
+		{
+			sprintf(ptr,"Nothing");
+			break;
+		}
+		case "Progressive Sword":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 5;
+					break;
+				case 2:
+					pickup_id = 6;
+					break;
+				case 3:
+					pickup_id = 7;
+					break;
+				case 4:
+					pickup_id = 36;
+					break;
+			}
+			break;
+		}
+		case "Progressive Tunic":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 17;
+					break;
+				case 2:
+					pickup_id = 18;
+					break;
+				case 3:
+					pickup_id = 61;
+					break;
+			}
+			break;
+		}
+		case "Progressive Bottle":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 145;
+					break;
+				case 2:
+					pickup_id = 146;
+					break;
+				case 3:
+					pickup_id = 147;
+					break;
+				case 4:
+					pickup_id = 148;
+					break;
+			}
+			break;
+		}
+		case "Progressive Jump":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 91;
+					break;
+				case 2:
+					pickup_id = 158;
+					break;
+			}
+			break;
+		}
+		case "Progressive Bomb Bag":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 81;
+					break;
+				case 2:
+					pickup_id = 82;
+					break;
+				case 3:
+					pickup_id = 83;
+					break;
+			}
+			break;
+		}
+		case "Progressive Quiver":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 74;
+					break;
+				case 2:
+					pickup_id = 75;
+					break;
+				case 3:
+					pickup_id = 76;
+					break;
+			}
+			break;
+		}
+		case "Progressive Magic Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 115;
+					break;
+				case 2:
+					pickup_id = 116;
+					break;
+				case 3:
+					pickup_id = 117;
+					break;
+				case 4:
+					pickup_id = 118;
+					break;
+			}
+			break;
+		}
+		case "Progressive Life Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 112;
+					break;
+				case 2:
+					pickup_id = 113;
+					break;
+				case 3:
+					pickup_id = 114;
+					break;
+			}
+			break;
+		}
+		case "Progressive Charge Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 101;
+					break;
+				case 2:
+					pickup_id = 102;
+					break;
+			}
+			break;
+		}
+		case "Progressive Shield":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 93;
+					break;
+				case 2:
+					pickup_id = 8;
+					break;
+				case 3:
+					pickup_id = 37;
+					break;
+			}
+			break;
+		}
+		case "Progressive Boomerang":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 23;
+					break;
+				case 2:
+					pickup_id = 24;
+					break;
+				case 3:
+					pickup_id = 35;
+					break;
+			}
+			break;
+		}
+		case "Progressive Lantern":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 10;
+					break;
+				case 2:
+					pickup_id = 11;
+					break;
+			}
+			break;
+		}
+		case "Progressive Wallet":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 41;
+					break;
+				case 2:
+					pickup_id = 42;
+					break;
+			}
+			break;
+		}
+		case "Progressive Coupon":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 109;
+					break;
+				case 2:
+					pickup_id = 110;
+					break;
+				case 3:
+					pickup_id = 111;
+					break;
+			}
+			break;
+		}
+		case "Progressive Bracelet":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 19;
+					break;
+				case 2:
+					pickup_id = 56;
+					break;
+			}
+			break;
+		}
+		case "Progressive Hookshot":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 52;
+					break;
+				case 2:
+					pickup_id = 89;
+					break;
+			}
+			break;
+		}
+		case "Progressive Traction":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 154;
+					break;
+				case 2:
+					pickup_id = 155;
+					break;
+			}
+			break;
+		}
+		case "Progressive Arrows":
+		{
+			switch(number)
+			{
+				case 1:
+					pickup_id = 13;
+					break;
+				case 2:
+					pickup_id = 14;
+					break;
+				case 3:
+					pickup_id = 57;
+					break;
+			}
+			break;
+		}
+		case "Bow":
+		{
+			pickup_id = 15;
+			break;
+		}
+		case "Wand":
+		{
+			pickup_id = 25;
+			break;
+		}
+		case "Magic Book":
+		{
+			pickup_id = 32;
+			break;
+		}
+		case "Hammer":
+		{
+			pickup_id = 54;
+			break;
+		}
+		case "Magic Rock":
+		{
+			pickup_id = 169;
+			break;
+		}
+		case "Divine Fire":
+		{
+			pickup_id = 64;
+			break;
+		}
+		case "Divine Protection":
+		{
+			pickup_id = 66;
+			break;
+		}
+		case "Divine Escape":
+		{
+			pickup_id = 65;
+			break;
+		}
+		case "Flippers":
+		{
+			pickup_id = 51;
+			break;
+		}
+		case "Ocarina":
+		{
+			pickup_id = 31;
+			break;
+		}
+		case "Lens of Truth":
+		{
+			pickup_id = 53;
+			break;
+		}
+		case "Cheese":
+		{
+			pickup_id = 16;
+			break;
+		}
+		case "Scroll: Cross Beams":
+		{
+			pickup_id = 95;
+			break;
+		}
+		case "Scroll: Peril Beam":
+		{
+			pickup_id = 103;
+			break;
+		}
+		case "Scroll: Hurricane Spin":
+		{
+			pickup_id = 98;
+			break;
+		}
+		case "Heart Container":
+		{
+			pickup_id = 28;
+			break;
+		}
+		case "Magic Container":
+		{
+			pickup_id = 58;
+			break;
+		}
+		case "Half Magic":
+		{
+			Game->Generic[GEN_MAGICDRAINRATE] = 1;
+			holdup_id = 58;
+			break;
+		}
+		case "Triforce Fragment":
+		{
+			Game->LItems[number] |= LI_TRIFORCE;
+			holdup_id = 20;
+			break;
+		}
+		case "Potion (Red)":
+		{
+			refill_shops |= 0001b;
+			pickup_id = 149;
+			break;
+		}
+		case "Potion (Blue)":
+		{
+			refill_shops |= 0010b;
+			pickup_id = 151;
+			break;
+		}
+		case "Potion (Green)":
+		{
+			refill_shops |= 0100b;
+			pickup_id = 150;
+			break;
+		}
+		case "Bomb Ammo x4":
+		{
+			pickup_id = 78;
+			break;
+		}
+		case "Bomb Ammo x30":
+		{
+			pickup_id = 80;
+			break;
+		}
+		case "Super Bomb Ammo x1":
+		{
+			refill_shops |= 1000b;
+			pickup_id = 48;
+			break;
+		}
+		case "Rupees x50":
+		{
+			pickup_id = 39;
+			break;
+		}
+		case "Rupees x100":
+		{
+			pickup_id = 87;
+			break;
+		}
+		case "Rupees x500":
+		{
+			pickup_id = 171;
+			break;
+		}
+		case "Compass 1":
+		case "Compass 2":
+		case "Compass 3":
+		case "Compass 4":
+		case "Compass 5":
+		case "Compass 6":
+		case "Compass 7":
+		case "Compass 8":
+		{
+			sprintf(ptr, "%s", itm->item_name);
+			Game->LItems[itm->item_name[-1]-'0'] |= LI_COMPASS;
+			holdup_id = 22;
+			break;
+		}
+		case "Map 1":
+		case "Map 2":
+		case "Map 3":
+		case "Map 4":
+		case "Map 5":
+		case "Map 6":
+		case "Map 7":
+		case "Map 8":
+		{
+			sprintf(ptr, "%s", itm->item_name);
+			Game->LItems[itm->item_name[-1]-'0'] |= LI_MAP;
+			holdup_id = 21;
+			break;
+		}
+		case "LKey 1":
+		case "LKey 2":
+		case "LKey 3":
+		case "LKey 5":
+		case "LKey 6":
+		case "LKey 7":
+		case "LKey 8":
+		{
+			sprintf(ptr, "%s", itm->item_name);
+			++Game->LKeys[itm->item_name[-1]-'0'];
+			holdup_id = 84;
+			break;
+		}
+		case "Boss Key 1":
+		case "Boss Key 2":
+		case "Boss Key 3":
+		case "Boss Key 5":
+		case "Boss Key 6":
+		case "Boss Key 7":
+		case "Boss Key 8":
+		{
+			sprintf(ptr, "%s", itm->item_name);
+			Game->LItems[itm->item_name[-1]-'0'] |= LI_BOSSKEY;
+			holdup_id = 67;
+			break;
+		}
+	}
+	if(pickup_id > -1)
+	{
+		itemsprite spr = Screen->CreateItem(pickup_id);
+		spr->ForceGrab = true;
+		spr->PickupString = 0;
+		spr->Pickup ~= IP_HOLDUP;
+		spr->NoSound = true;
+		itemdata id = Game->LoadItemData(pickup_id);
+		id->GetDisplayName(ptr);
+		unless(ptr[0])
+			id->GetName(ptr);
+		return pickup_id;
+	}
+	unless(ptr[0])
+		sprintf(ptr,"%s",itm->item_name);
+	return holdup_id;
+}
+int get_lga3_item(Archipelago::NetworkItem itm, int number)
+{
+	#option STRING_SWITCH_CASE_INSENSITIVE on
+	switch(itm->item_name)
+	{
+		case "Nothing":
+		{
+			return -1;
+		}
+		case "Progressive Sword":
+		{
+			switch(number)
+			{
+				case 1:
+					return 5;
+				case 2:
+					return 6;
+				case 3:
+					return 7;
+				case 4:
+					return 36;
+			}
+		}
+		case "Progressive Tunic":
+		{
+			switch(number)
+			{
+				case 1:
+					return 17;
+				case 2:
+					return 18;
+				case 3:
+					return 61;
+			}
+		}
+		case "Progressive Bottle":
+		{
+			switch(number)
+			{
+				case 1:
+					return 145;
+				case 2:
+					return 146;
+				case 3:
+					return 147;
+				case 4:
+					return 148;
+			}
+		}
+		case "Progressive Jump":
+		{
+			switch(number)
+			{
+				case 1:
+					return 91;
+				case 2:
+					return 158;
+			}
+		}
+		case "Progressive Bomb Bag":
+		{
+			switch(number)
+			{
+				case 1:
+					return 81;
+				case 2:
+					return 82;
+				case 3:
+					return 83;
+			}
+		}
+		case "Progressive Quiver":
+		{
+			switch(number)
+			{
+				case 1:
+					return 74;
+				case 2:
+					return 75;
+				case 3:
+					return 76;
+			}
+		}
+		case "Progressive Magic Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					return 115;
+				case 2:
+					return 116;
+				case 3:
+					return 117;
+				case 4:
+					return 118;
+			}
+		}
+		case "Progressive Life Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					return 112;
+				case 2:
+					return 113;
+				case 3:
+					return 114;
+			}
+		}
+		case "Progressive Charge Ring":
+		{
+			switch(number)
+			{
+				case 1:
+					return 101;
+				case 2:
+					return 102;
+			}
+		}
+		case "Progressive Shield":
+		{
+			switch(number)
+			{
+				case 1:
+					return 93;
+				case 2:
+					return 8;
+				case 3:
+					return 37;
+			}
+		}
+		case "Progressive Boomerang":
+		{
+			switch(number)
+			{
+				case 1:
+					return 23;
+				case 2:
+					return 24;
+				case 3:
+					return 35;
+			}
+		}
+		case "Progressive Lantern":
+		{
+			switch(number)
+			{
+				case 1:
+					return 10;
+				case 2:
+					return 11;
+			}
+		}
+		case "Progressive Wallet":
+		{
+			switch(number)
+			{
+				case 1:
+					return 41;
+				case 2:
+					return 42;
+			}
+		}
+		case "Progressive Coupon":
+		{
+			switch(number)
+			{
+				case 1:
+					return 109;
+				case 2:
+					return 110;
+				case 3:
+					return 111;
+			}
+		}
+		case "Progressive Bracelet":
+		{
+			switch(number)
+			{
+				case 1:
+					return 19;
+				case 2:
+					return 56;
+			}
+		}
+		case "Progressive Hookshot":
+		{
+			switch(number)
+			{
+				case 1:
+					return 52;
+				case 2:
+					return 89;
+			}
+		}
+		case "Progressive Traction":
+		{
+			switch(number)
+			{
+				case 1:
+					return 154;
+				case 2:
+					return 155;
+			}
+		}
+		case "Progressive Arrows":
+		{
+			switch(number)
+			{
+				case 1:
+					return 13;
+				case 2:
+					return 14;
+				case 3:
+					return 57;
+			}
+		}
+		case "Bow":
+		{
+			return 15;
+		}
+		case "Wand":
+		{
+			return 25;
+		}
+		case "Magic Book":
+		{
+			return 32;
+		}
+		case "Hammer":
+		{
+			return 54;
+		}
+		case "Magic Rock":
+		{
+			return 169;
+		}
+		case "Divine Fire":
+		{
+			return 64;
+		}
+		case "Divine Protection":
+		{
+			return 66;
+		}
+		case "Divine Escape":
+		{
+			return 65;
+		}
+		case "Flippers":
+		{
+			return 51;
+		}
+		case "Ocarina":
+		{
+			return 31;
+		}
+		case "Lens of Truth":
+		{
+			return 53;
+		}
+		case "Cheese":
+		{
+			return 16;
+		}
+		case "Scroll: Cross Beams":
+		{
+			return 95;
+		}
+		case "Scroll: Peril Beam":
+		{
+			return 103;
+		}
+		case "Scroll: Hurricane Spin":
+		{
+			return 98;
+		}
+		case "Heart Container":
+		{
+			return 28;
+		}
+		case "Magic Container":
+		{
+			return 58;
+		}
+		case "Half Magic":
+		{
+			return 58;
+		}
+		case "Triforce Fragment":
+		{
+			return 20;
+		}
+		case "Potion (Red)":
+		{
+			return 149;
+		}
+		case "Potion (Blue)":
+		{
+			return 151;
+		}
+		case "Potion (Green)":
+		{
+			return 150;
+		}
+		case "Bomb Ammo x4":
+		{
+			return 78;
+		}
+		case "Bomb Ammo x30":
+		{
+			return 80;
+		}
+		case "Super Bomb Ammo x1":
+		{
+			return 48;
+		}
+		case "Rupees x50":
+		{
+			return 39;
+		}
+		case "Rupees x100":
+		{
+			return 87;
+		}
+		case "Rupees x500":
+		{
+			return 171;
+		}
+		case "Compass 1":
+		case "Compass 2":
+		case "Compass 3":
+		case "Compass 4":
+		case "Compass 5":
+		case "Compass 6":
+		case "Compass 7":
+		case "Compass 8":
+		{
+			return 22;
+		}
+		case "Map 1":
+		case "Map 2":
+		case "Map 3":
+		case "Map 4":
+		case "Map 5":
+		case "Map 6":
+		case "Map 7":
+		case "Map 8":
+		{
+			return 21;
+		}
+		case "LKey 1":
+		case "LKey 2":
+		case "LKey 3":
+		case "LKey 5":
+		case "LKey 6":
+		case "LKey 7":
+		case "LKey 8":
+		{
+			return 84;
+		}
+		case "Boss Key 1":
+		case "Boss Key 2":
+		case "Boss Key 3":
+		case "Boss Key 5":
+		case "Boss Key 6":
+		case "Boss Key 7":
+		case "Boss Key 8":
+		{
+			return 67;
+		}
+	}
+	return -1;
+}
+
+void get_item(Archipelago::NetworkItem itm, int number)
+{
+	char32 buf[1];
+	int id = silent_get_item(itm,number,buf);
+	if(id < 0)
+		id = AP_HOLDUP_ITEM;
+	HoldUpItem(id, 0);
+	Audio->PlaySound(SFX_JINGLE);
+	sprintf(buf, "You were sent '%s'!", buf);
+	popup_msg(buf);
+}
+
+void self_item(Archipelago::NetworkItem itm, int number)
+{
+	char32 buf[1];
+	int id = silent_get_item(itm,number,buf);
+	if(id < 0)
+		id = AP_HOLDUP_ITEM;
+	HoldUpItem(id, 0);
+	Audio->PlaySound(SFX_JINGLE);
+	sprintf(buf, "You found your own '%s'!", buf);
+	popup_msg(buf);
+}
+
+void remote_item(Archipelago::NetworkItem itm)
+{
+	using namespace Archipelago;
+	char32 buf[1];
+	Archipelago::NetworkPlayer plr = players[itm->player_id-1];
+	Archipelago::NetworkSlot slot = slots[plr->slot_id-1];
+	int id = AP_HOLDUP_ITEM;
+	unless(strcmp(slot->game,slots[players[ap_player_id-1]->slot_id-1]->game))
+	{
+		int id2 = get_lga3_item(itm, 1);
+		if(id2 > -1)
+			id = id2;
+	}
+	HoldUpItem(id, 0);
+	Audio->PlaySound(SFX_JINGLE);
+
+	sprintf(buf, "You found %s's '%s'!", slot->name, itm->item_name);
+	popup_msg(buf);
+}
+
+void popup_msg(char32 buf)
+{
+	messagedata md = Game->LoadMessageData(61);
+	md->Set(buf);
+	Screen->Message(61);
+}
+
+generic script AP_Pickup_Runner
+{
+	void run()
+	{
+		int delay = 30;
+		while(true)
+		{
+			Waitframe();
+			if(delay)
+			{
+				--delay;
+				continue;
+			}
+			switch(Hero->Action)
+			{
+				case LA_NONE:
+				case LA_WALKING:
+				case LA_SWIMMING:
+					break;
+				default:
+					continue;
+			}
+			if(Screen->ShowingMessage)
+				continue;
+				
+			delay = 5;
+			if(Archipelago::NetworkItem locinfo = poll_collect())
+			{
+				if(locinfo->player_id == Archipelago::ap_player_id)
+				{
+					int indx = locinfo->localize_item_id();
+					Archipelago::mark_item_collected(indx);
+					self_item(locinfo, Archipelago::collected_item(indx));
+				}
+				else remote_item(locinfo);
+			}
+			else if(Archipelago::NetworkItem recvinfo = poll_receive())
+			{
+				if(recvinfo->player_id == Archipelago::ap_player_id)
+					self_item(recvinfo, recvd_count);
+				else get_item(recvinfo, recvd_count);
+				delete recvinfo;
+			}
+			else delay = 0;
+		}
+	}
+}
+
+generic script AP_ScreenChange_Runner
+{
+	using namespace Archipelago;
+	NetworkItem locs[AP_DUMMY_COUNT];
+	void run()
+	{
+		this->ReloadState[GENSCR_ST_CHANGE_SCREEN];
+		while(Game->CurScreen >= 0x80)
+			Waitframe();
+		Screen->ItemSFX = 0;
+		itemdata ids[AP_DUMMY_COUNT];
+		get_ap_locs(locs);
+		for(int q = 0; q < AP_DUMMY_COUNT; ++q)
+		{
+			unless(locs[q])
+				continue;
+			NetworkPlayer plyr = players[locs[q]->player_id-1];
+			NetworkSlot slot = slots[plyr->slot_id-1];
+			int visual_id = AP_HOLDUP_ITEM;
+			auto cur_plyr = players[ap_player_id-1];
+			auto cur_slot = slots[cur_plyr->slot_id-1];
+			unless(strcmp(slot->game,cur_slot->game))
+			{
+				int id = get_lga3_item(locs[q], locs[q]->player_id == ap_player_id ? collected_item(locs[q]->localize_location_id()) : 1);
+				if(id > -1)
+					visual_id = id;
+			}
+			itemdata idata = Game->LoadItemData(visual_id);
+			itemdata dummy = Game->LoadItemData(AP_DUMMY_START+q);
+			dummy->Tile = idata->Tile;
+			dummy->CSet = idata->CSet;
+			dummy->AFrames = idata->AFrames;
+			dummy->ASpeed = idata->ASpeed;
+			dummy->Delay = idata->Delay;
+			dummy->Flash = idata->Flash;
+		}
+		while(true)
+			Waitframes(MAX_INT);
+	}
+}
+generic script AP_ItemCollect_Handler
+{
+	void run()
+	{
+		using namespace Archipelago;
+		this->EventListen[GENSCR_EVENT_COLLECT_ITEM] = true;
+		while(true)
+		{
+			if(WaitEvent() == GENSCR_EVENT_COLLECT_ITEM)
+			{
+				int id = Game->EventData[GENEV_ITEMCOL_ID];
+				Game->EventData[GENEV_ITEMCOL_PICKUP] ~= IP_HOLDUP;
+				int dummy_id = id - AP_DUMMY_START;
+				if(dummy_id < 0 || dummy_id >= AP_DUMMY_COUNT)
+					continue;
+				NetworkItem itm = AP_ScreenChange_Runner.locs[dummy_id];
+				auto loc_id = itm->localize_location_id();
+				collect_location(loc_id);
+				mark_location_checked(loc_id);
+			}
+		}
+	}
+}
+
+void get_ap_locs(int locs)
+{
+	switch((Game->CurMap << 8) + Game->CurScreen)
+	{
+		case 0x347:
+			locs[0] = find_loc("Kak Bombable Cave");
+			break;
+	}
+}
+Archipelago::NetworkItem find_loc(char32 loc_name)
+{
+	for(int q = 0; q < Archipelago::num_locs; ++q)
+	{
+		auto loc = Archipelago::location_infos[q];
+		unless(strcmp(loc->location_name,loc_name))
+		{
+			return loc;
+		}
+	}
+	return NULL;
+}
+
+void handle_ap_placements()
+{
+	#option STRING_SWITCH_CASE_INSENSITIVE on
+	unless(archipelago_mode) return;
+	if(first_launch)
+	{
+		Hero->Item[5] = false;
+		Hero->Item[13] = false;
+		Hero->Item[81] = false;
+		Hero->Item[115] = false;
+		Hero->Item[93] = false;
+		Game->MCounter[CR_BOMBS] = 0;
+	}
+	int start_locs[0];
+	mapdata md;
+	for(int q = 0; q < Archipelago::num_locs; ++q)
+	{
+		Archipelago::NetworkItem itm = Archipelago::check_location_info(q);
+		switch(itm->location_name)
+		{
+			case "Starting Sword":
+			case "Starting Bomb Bag":
+			case "Starting Magic Ring":
+			case "Starting Shield":
+			case "Starting Arrows":
+			{
+				ArrayPushBack(start_locs, q);
+				break;
+			}
+			case "Sword Under Block": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x53);
+				break;
+			}
+			case "Sword Under Tree": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x37);
+				break;
+			}
+			case "Boomerang Under Rock": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x35);
+				break;
+			}
+			case "KillAll: HeartC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x1B);
+				break;
+			}
+			case "KillAll: MagicC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x0C);
+				break;
+			}
+			case "Kak Red Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 4": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Potion Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Potion Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Potion Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Purple Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Purple Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Purple Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Bombable Cave":
+			{
+				md = Game->LoadMapData(3, 0x47);
+				md->Catchall = AP_DUMMY_START+0;
+				break;
+			}
+			case "Kak Magic Rock Cave": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x70);
+				break;
+			}
+			case "Hidden HeartC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x02);
+				break;
+			}
+			case "Hidden MagicC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x11);
+				break;
+			}
+			case "KillAll: MagicC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x21);
+				break;
+			}
+			case "KillAll: HeartC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x40);
+				break;
+			}
+			case "KillAll: MagicC 3": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x42);
+				break;
+			}
+			case "24-Headed Dragon": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x04);
+				break;
+			}
+			case "Cave Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Cave Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Cave Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Super Bomb Shop": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x70);
+				break;
+			}
+			case "KillAll: Cross Beams": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x07);
+				break;
+			}
+			case "KillAll: MagicC 4": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x06);
+				break;
+			}
+			case "Hidden MagicC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x05);
+				break;
+			}
+			case "Hidden Half Magic": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x2E);
+				break;
+			}
+			case "Traction Boots": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x4D);
+				break;
+			}
+			case "Hidden HeartC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x4F);
+				break;
+			}
+			case "KillAll: MagicC 5": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5B);
+				break;
+			}
+			case "Divine Protection": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5D);
+				break;
+			}
+			case "Hidden HeartC 3": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x6B);
+				break;
+			}
+			case "KillAll: Peril Beam": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5F);
+				break;
+			}
+			case "L1: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x73);
+				break;
+			}
+			case "L1 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x62);
+				break;
+			}
+			case "L1 KillAll: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x63);
+				break;
+			}
+			case "L1 KillAll: Wallet": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x75);
+				break;
+			}
+			case "L1 KillAll: Life Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x66);
+				break;
+			}
+			case "L1 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x77);
+				break;
+			}
+			case "L1: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x67);
+				break;
+			}
+			case "L1 KillAll: Quiver": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x78);
+				break;
+			}
+			case "L1 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x68);
+				break;
+			}
+			case "L1 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x64);
+				break;
+			}
+			case "L1 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x65);
+				break;
+			}
+			case "L2 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7C);
+				break;
+			}
+			case "L2 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7E);
+				break;
+			}
+			case "L2 KillAll: Sword": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6F);
+				break;
+			}
+			case "L2 KillAll: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7F);
+				break;
+			}
+			case "L2: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4F);
+				break;
+			}
+			case "L2 KillAll: Heart Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6B);
+				break;
+			}
+			case "L2 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7F);
+				break;
+			}
+			case "L2: Coupon": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4B);
+				break;
+			}
+			case "L2 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4D);
+				break;
+			}
+			case "L2 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x5D);
+				break;
+			}
+			case "L2 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6D);
+				break;
+			}
+			case "L3: Roc's Feather": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x00);
+				break;
+			}
+			case "L3 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x01);
+				break;
+			}
+			case "L3: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x02);
+				break;
+			}
+			case "L3 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x03);
+				break;
+			}
+			case "L3 KillAll: Bracelet": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x12);
+				break;
+			}
+			case "L3 KillAll: Hookshot": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x14);
+				break;
+			}
+			case "L3: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x13);
+				break;
+			}
+			case "L3 KillAll: Charge Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x05);
+				break;
+			}
+			case "L3 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x06);
+				break;
+			}
+			case "L3 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x07);
+				break;
+			}
+			case "L4: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x20);
+				break;
+			}
+			case "L4: Roc's Cape": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x30);
+				break;
+			}
+			case "L4: Bomb Bag": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x21);
+				break;
+			}
+			case "L4: Boomerang": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x33);
+				break;
+			}
+			case "L4 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x43);
+				break;
+			}
+			case "L4 KillAll: Longshot": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x24);
+				break;
+			}
+			case "L4 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x25);
+				break;
+			}
+			case "L4 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x26);
+				break;
+			}
+			case "L5 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6D);
+				break;
+			}
+			case "L5 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7A);
+				break;
+			}
+			case "L5 KillAll: Hidden LKey": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6A);
+				break;
+			}
+			case "L5 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6B);
+				break;
+			}
+			case "L5 KillAll: Escape Spell": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6C);
+				break;
+			}
+			case "L5 KillAll: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7B);
+				break;
+			}
+			case "L5: Bracelet 2": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7D);
+				break;
+			}
+			case "L5 KillAll: Magic Ring": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5D);
+				break;
+			}
+			case "L5 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x4C);
+				break;
+			}
+			case "L5 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5B);
+				break;
+			}
+			case "L5 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5A);
+				break;
+			}
+			case "L6: Compass": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x56);
+				break;
+			}
+			case "L6 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x46);
+				break;
+			}
+			case "L6: Hidden Money": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x55);
+				break;
+			}
+			case "L6 KillAll: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x47);
+				break;
+			}
+			case "L6 KillAll: Money 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x57);
+				break;
+			}
+			case "L6: Dragon Miniboss": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x58);
+				break;
+			}
+			case "L6 KillAll: Wand": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x48);
+				break;
+			}
+			case "L6 KillAll: Charge Ring": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x18);
+				break;
+			}
+			case "L6 KillAll: Money 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x16);
+				break;
+			}
+			case "L6: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x54);
+				break;
+			}
+			case "L6 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x42);
+				break;
+			}
+			case "L6 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x22);
+				break;
+			}
+			case "L6 KillAll: Quiver": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x23);
+				break;
+			}
+			case "L6 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x32);
+				break;
+			}
+			case "L6 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x30);
+				break;
+			}
+			case "Well: Bomb Bag": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x72);
+				break;
+			}
+			case "Well: Lens": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x74);
+				break;
+			}
+			case "Well: Green Potion": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x62);
+				break;
+			}
+			case "Well: Cheese": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x52);
+				break;
+			}
+			case "L7 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x56);
+				break;
+			}
+			case "L7 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x58);
+				break;
+			}
+			case "L7 KillAll: Wallet": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x36);
+				break;
+			}
+			case "L7 KillAll: Coupon": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x38);
+				break;
+			}
+			case "L7 KillAll: Shield": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x15);
+				break;
+			}
+			case "L7 KillAll: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x19);
+				break;
+			}
+			case "L7 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x16);
+				break;
+			}
+			case "L7 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x18);
+				break;
+			}
+			case "L7 KillAll: Money": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x08);
+				break;
+			}
+			case "L7 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x07);
+				break;
+			}
+			case "L7 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x06);
+				break;
+			}
+			case "L8 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x6A);
+				break;
+			}
+			case "L8 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x6E);
+				break;
+			}
+			case "L8 KillAll: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x7B);
+				break;
+			}
+			case "L8 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x7D);
+				break;
+			}
+			case "L8 KillAll: LKey 3": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x4B);
+				break;
+			}
+			case "L8 KillAll: LKey 4": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x4D);
+				break;
+			}
+			case "L8 KillAll: LKey 5": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3B);
+				break;
+			}
+			case "L8 KillAll: LKey 6": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3D);
+				break;
+			}
+			case "L8 KillAll: LKey 7": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1A);
+				break;
+			}
+			case "L8 KillAll: LKey 8": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1E);
+				break;
+			}
+			case "L8: 12-Headed Dragon": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3C);
+				break;
+			}
+			case "L8: Plant Bosses": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x2C);
+				break;
+			}
+			case "L8: Spider Bosses": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1C);
+				break;
+			}
+			case "L8: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1B);
+				break;
+			}
+			case "L8: Hurricane Spin": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1D);
+				break;
+			}
+			case "L8: Silver Arrows": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0D);
+				break;
+			}
+			case "L8 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0C);
+				break;
+			}
+			case "L8 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0B);
+				break;
+			}
+			case "L9: Tunic Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x4A);
+				break;
+			}
+			case "L9: Magic Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x6C);
+				break;
+			}
+			case "L9: Arrow Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x4E);
+				break;
+			}
+			case "L9: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x3C);
+				break;
+			}
+		}
+	}
+	collect_locations(start_locs);
+}
+
+Archipelago::NetworkItem collect_queue[0];
+Archipelago::NetworkItem receive_queue[0];
+int receive_counts[0];
+void _collect_location_int(int indx)
+{
+	ArrayPushBack(collect_queue, Archipelago::check_location_info(indx));
+	Archipelago::mark_location_checked(indx);
+}
+void collect_locations(int arr)
+{
+	for(int q = 0; q < SizeOfArray(arr);)
+	{
+		if(Archipelago::checked_location(arr[q]))
+			ArrayPopAt(arr,q);
+		else
+			_collect_location_int(arr[q++]);
+	}
+	Archipelago::send_location_checks_arr(arr);
+}
+void collect_location(...int[] arr)
+{
+	collect_locations(arr);
+}
+
+int recvd_count;
+Archipelago::NetworkItem poll_receive()
+{
+	if(SizeOfArray(receive_queue))
+	{
+		recvd_count = ArrayPopFront(receive_counts);
+		return ArrayPopFront(receive_queue);
+	}
+	return NULL;
+}
+
+Archipelago::NetworkItem poll_collect()
+{
+	if(SizeOfArray(collect_queue))
+		return ArrayPopFront(collect_queue);
+	return NULL;
 }
 
 generic script AP_Connect_Menu
@@ -315,6 +2174,12 @@ namespace Archipelago::Settings
 		//'itm->localize_location_id()' does the same for the location; but this is only valid to do if
 		//    'itm->player_id == Archipelago::ap_player_id'
 		//'itm->player_id' is the ID of the player who sent the item
+		auto cpy = itm->copy();
+		GlobalObject(cpy);
+		unless(cpy->item_name[0])
+			Archipelago::fetch_item_names(cpy, true);
+		ArrayPushBack(receive_queue, cpy);
+		ArrayPushBack(receive_counts, total_count);
 	}
 	void on_location_scouts(NetworkItem itm)
 	{
@@ -352,6 +2217,717 @@ namespace Archipelago::Settings
 	void do_remove_location(int id)
 	{
 		//forcibly mark this location as "already collected"
-		printf("[REMOVE LOCATION] %d\n", id);
+		Archipelago::NetworkItem itm = Archipelago::check_location_info(id);
+		mapdata md;
+		switch(itm->location_name)
+		{
+			case "Starting Sword":
+			case "Starting Bomb Bag":
+			case "Starting Magic Ring":
+			case "Starting Shield":
+			case "Starting Arrows":
+				break;
+			case "Sword Under Block": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x53);
+				break;
+			}
+			case "Sword Under Tree": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x37);
+				break;
+			}
+			case "Boomerang Under Rock": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x35);
+				break;
+			}
+			case "KillAll: HeartC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x1B);
+				break;
+			}
+			case "KillAll: MagicC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x0C);
+				break;
+			}
+			case "Kak Red Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Red Shop 4": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x00);
+				break;
+			}
+			case "Kak Potion Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Potion Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Potion Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x01);
+				break;
+			}
+			case "Kak Purple Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Purple Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Purple Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x02);
+				break;
+			}
+			case "Kak Bombable Cave": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x47);
+				md->State[ST_SPECIALITEM] = true;
+				break;
+			}
+			case "Kak Magic Rock Cave": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x70);
+				break;
+			}
+			case "Hidden HeartC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x02);
+				break;
+			}
+			case "Hidden MagicC 1": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x11);
+				break;
+			}
+			case "KillAll: MagicC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x21);
+				break;
+			}
+			case "KillAll: HeartC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x40);
+				break;
+			}
+			case "KillAll: MagicC 3": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x42);
+				break;
+			}
+			case "24-Headed Dragon": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x04);
+				break;
+			}
+			case "Cave Shop 1": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Cave Shop 2": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Cave Shop 3": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x50);
+				break;
+			}
+			case "Super Bomb Shop": //!TODO
+			{
+				md = Game->LoadMapData(2, 0x70);
+				break;
+			}
+			case "KillAll: Cross Beams": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x07);
+				break;
+			}
+			case "KillAll: MagicC 4": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x06);
+				break;
+			}
+			case "Hidden MagicC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x05);
+				break;
+			}
+			case "Hidden Half Magic": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x2E);
+				break;
+			}
+			case "Traction Boots": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x4D);
+				break;
+			}
+			case "Hidden HeartC 2": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x4F);
+				break;
+			}
+			case "KillAll: MagicC 5": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5B);
+				break;
+			}
+			case "Divine Protection": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5D);
+				break;
+			}
+			case "Hidden HeartC 3": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x6B);
+				break;
+			}
+			case "KillAll: Peril Beam": //!TODO
+			{
+				md = Game->LoadMapData(1, 0x5F);
+				break;
+			}
+			case "L1: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x73);
+				break;
+			}
+			case "L1 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x62);
+				break;
+			}
+			case "L1 KillAll: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x63);
+				break;
+			}
+			case "L1 KillAll: Wallet": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x75);
+				break;
+			}
+			case "L1 KillAll: Life Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x66);
+				break;
+			}
+			case "L1 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x77);
+				break;
+			}
+			case "L1: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x67);
+				break;
+			}
+			case "L1 KillAll: Quiver": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x78);
+				break;
+			}
+			case "L1 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x68);
+				break;
+			}
+			case "L1 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x64);
+				break;
+			}
+			case "L1 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x65);
+				break;
+			}
+			case "L2 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7C);
+				break;
+			}
+			case "L2 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7E);
+				break;
+			}
+			case "L2 KillAll: Sword": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6F);
+				break;
+			}
+			case "L2 KillAll: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7F);
+				break;
+			}
+			case "L2: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4F);
+				break;
+			}
+			case "L2 KillAll: Heart Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6B);
+				break;
+			}
+			case "L2 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x7F);
+				break;
+			}
+			case "L2: Coupon": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4B);
+				break;
+			}
+			case "L2 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x4D);
+				break;
+			}
+			case "L2 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x5D);
+				break;
+			}
+			case "L2 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x6D);
+				break;
+			}
+			case "L3: Roc's Feather": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x00);
+				break;
+			}
+			case "L3 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x01);
+				break;
+			}
+			case "L3: LKey": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x02);
+				break;
+			}
+			case "L3 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x03);
+				break;
+			}
+			case "L3 KillAll: Bracelet": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x12);
+				break;
+			}
+			case "L3 KillAll: Hookshot": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x14);
+				break;
+			}
+			case "L3: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x13);
+				break;
+			}
+			case "L3 KillAll: Charge Ring": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x05);
+				break;
+			}
+			case "L3 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x06);
+				break;
+			}
+			case "L3 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x07);
+				break;
+			}
+			case "L4: Map": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x20);
+				break;
+			}
+			case "L4: Roc's Cape": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x30);
+				break;
+			}
+			case "L4: Bomb Bag": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x21);
+				break;
+			}
+			case "L4: Boomerang": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x33);
+				break;
+			}
+			case "L4 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x43);
+				break;
+			}
+			case "L4 KillAll: Longshot": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x24);
+				break;
+			}
+			case "L4 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x25);
+				break;
+			}
+			case "L4 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(4, 0x26);
+				break;
+			}
+			case "L5 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6D);
+				break;
+			}
+			case "L5 KillAll: Bomb Ammo": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7A);
+				break;
+			}
+			case "L5 KillAll: Hidden LKey": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6A);
+				break;
+			}
+			case "L5 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6B);
+				break;
+			}
+			case "L5 KillAll: Escape Spell": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x6C);
+				break;
+			}
+			case "L5 KillAll: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7B);
+				break;
+			}
+			case "L5: Bracelet 2": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x7D);
+				break;
+			}
+			case "L5 KillAll: Magic Ring": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5D);
+				break;
+			}
+			case "L5 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x4C);
+				break;
+			}
+			case "L5 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5B);
+				break;
+			}
+			case "L5 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x5A);
+				break;
+			}
+			case "L6: Compass": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x56);
+				break;
+			}
+			case "L6 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x46);
+				break;
+			}
+			case "L6: Hidden Money": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x55);
+				break;
+			}
+			case "L6 KillAll: Bottle": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x47);
+				break;
+			}
+			case "L6 KillAll: Money 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x57);
+				break;
+			}
+			case "L6: Dragon Miniboss": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x58);
+				break;
+			}
+			case "L6 KillAll: Wand": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x48);
+				break;
+			}
+			case "L6 KillAll: Charge Ring": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x18);
+				break;
+			}
+			case "L6 KillAll: Money 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x16);
+				break;
+			}
+			case "L6: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x54);
+				break;
+			}
+			case "L6 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x42);
+				break;
+			}
+			case "L6 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x22);
+				break;
+			}
+			case "L6 KillAll: Quiver": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x23);
+				break;
+			}
+			case "L6 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x32);
+				break;
+			}
+			case "L6 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x30);
+				break;
+			}
+			case "Well: Bomb Bag": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x72);
+				break;
+			}
+			case "Well: Lens": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x74);
+				break;
+			}
+			case "Well: Green Potion": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x62);
+				break;
+			}
+			case "Well: Cheese": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x52);
+				break;
+			}
+			case "L7 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x56);
+				break;
+			}
+			case "L7 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x58);
+				break;
+			}
+			case "L7 KillAll: Wallet": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x36);
+				break;
+			}
+			case "L7 KillAll: Coupon": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x38);
+				break;
+			}
+			case "L7 KillAll: Shield": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x15);
+				break;
+			}
+			case "L7 KillAll: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x19);
+				break;
+			}
+			case "L7 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x16);
+				break;
+			}
+			case "L7 KillAll: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x18);
+				break;
+			}
+			case "L7 KillAll: Money": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x08);
+				break;
+			}
+			case "L7 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x07);
+				break;
+			}
+			case "L7 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(5, 0x06);
+				break;
+			}
+			case "L8 KillAll: Map": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x6A);
+				break;
+			}
+			case "L8 KillAll: Compass": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x6E);
+				break;
+			}
+			case "L8 KillAll: LKey 1": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x7B);
+				break;
+			}
+			case "L8 KillAll: LKey 2": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x7D);
+				break;
+			}
+			case "L8 KillAll: LKey 3": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x4B);
+				break;
+			}
+			case "L8 KillAll: LKey 4": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x4D);
+				break;
+			}
+			case "L8 KillAll: LKey 5": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3B);
+				break;
+			}
+			case "L8 KillAll: LKey 6": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3D);
+				break;
+			}
+			case "L8 KillAll: LKey 7": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1A);
+				break;
+			}
+			case "L8 KillAll: LKey 8": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1E);
+				break;
+			}
+			case "L8: 12-Headed Dragon": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x3C);
+				break;
+			}
+			case "L8: Plant Bosses": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x2C);
+				break;
+			}
+			case "L8: Spider Bosses": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1C);
+				break;
+			}
+			case "L8: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1B);
+				break;
+			}
+			case "L8: Hurricane Spin": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x1D);
+				break;
+			}
+			case "L8: Silver Arrows": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0D);
+				break;
+			}
+			case "L8 Boss Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0C);
+				break;
+			}
+			case "L8 Dungeon Reward": //!TODO
+			{
+				md = Game->LoadMapData(6, 0x0B);
+				break;
+			}
+			case "L9: Tunic Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x4A);
+				break;
+			}
+			case "L9: Magic Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x6C);
+				break;
+			}
+			case "L9: Arrow Path": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x4E);
+				break;
+			}
+			case "L9: Boss Key": //!TODO
+			{
+				md = Game->LoadMapData(3, 0x3C);
+				break;
+			}
+		}
 	}
 }
