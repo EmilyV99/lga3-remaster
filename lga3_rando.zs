@@ -69,7 +69,7 @@ global script onLaunch
 						if(int scr = CheckGenericScript("AP_Connect_Menu"))
 						{
 							RunGenericScriptFrz(scr, {0});
-							if(Archipelago::status == Archipelago::STATUS_AUTHENTICATED)
+							if(Archipelago::status >= Archipelago::STATUS_AUTHENTICATED)
 							{
 								archipelago_mode = true;
 								//Store seed/slot identifying info, for validation on reconnects
@@ -77,13 +77,6 @@ global script onLaunch
 								cache_player_team = Archipelago::ap_player_team;
 								sprintf(cache_seed, "%s", Archipelago::seed);
 								sprintf(cache_slot, "%s", Archipelago::slot);
-
-								Archipelago::send_sync();
-								int locs[0];
-								ResizeArray(locs,Archipelago::num_locs);
-								loop(q : 0=..Archipelago::num_locs)
-									locs[q] = q;
-								Archipelago::send_location_scouts_arr(0,locs);
 								break 2;
 							}
 						}
@@ -104,7 +97,7 @@ global script onLaunch
 				loop()
 				{
 					RunGenericScriptFrz(scr,{sel});
-					if(Archipelago::status == Archipelago::STATUS_AUTHENTICATED)
+					if(Archipelago::status >= Archipelago::STATUS_AUTHENTICATED)
 					{
 						if(cache_player_id != Archipelago::ap_player_id)
 							printf("WRONG SLOT: Player ID %d mismatches %d\n",Archipelago::ap_player_id,cache_player_id);
@@ -126,10 +119,15 @@ global script onLaunch
 					{
 						printf("Archipelago could not be launched!\n");
 					}
+					Archipelago::disconnect_socket();
 				}
 			}
 		}
 		first_launch = false;
+		Archipelago::NetworkItem itm = Archipelago::check_location_info(1);
+		Archipelago::NetworkPlayer plyr = Archipelago::players[itm->player_id-1];
+		Archipelago::NetworkSlot slot = Archipelago::slots[plyr->slot_id-1];
+		printf("At %s, you will find %s's %s\n", itm->location_name, slot->name, itm->item_name);
 	}
 }
 
@@ -271,8 +269,8 @@ generic script AP_Connect_Menu
 
 		if(int scr = CheckGenericScript("APHandler"))
 		{
-			auto gd = RunGenericScriptFrz(scr, {true});
-			gd->InitD[0] = false;
+			auto gd = RunGenericScriptFrz(scr, {Archipelago::APH_END_DATA});
+			gd->InitD[0] = Archipelago::APH_END_NEVER;
 		}
 		while(Archipelago::status == Archipelago::STATUS_CONNECTING
 			|| Archipelago::status == Archipelago::STATUS_CONNECTED)
@@ -324,7 +322,6 @@ namespace Archipelago::Settings
 		//'itm->item_id' is the item's string ID
 		//'itm->location_id' is the string ID for the location
 		//'itm->player_id' is the ID of the player who will receive the item
-		printf("At loc '%s': player %d's item '%s'\n", itm->location_id, itm->player_id, itm->item_id);
 	}
 	void on_room_update(JSONRef ref)
 	{
