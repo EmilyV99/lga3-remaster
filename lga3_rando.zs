@@ -2961,25 +2961,17 @@ generic script AP_Connect_Menu
 		} until(Archipelago::ap_connect(ip, port, slot, pwd));
 
 		char32 wait_msg[] = "Connecting; please wait...";
-		ColorScreen(7, 0x0F, true);
-		Emily::DrawStrings(7, 128, MID_Y, FONT, 0x01, -1, TF_CENTERED, wait_msg, OP_OPAQUE, 2, 256);
 
-		if(int scr = CheckGenericScript("APHandler"))
+		while(Archipelago::sock && Archipelago::status < Archipelago::STATUS_DATA_LOADED)
 		{
-			auto gd = RunGenericScriptFrz(scr, {Archipelago::APH_END_DATA});
-			gd->InitD[0] = Archipelago::APH_END_NEVER;
-		}
-		while(Archipelago::status == Archipelago::STATUS_CONNECTING
-			|| Archipelago::status == Archipelago::STATUS_CONNECTED)
-		{
+			ColorScreen(7, 0x0F, true);
+			Emily::DrawStrings(7, 128, MID_Y, FONT, 0x01, -1, TF_CENTERED, wait_msg, OP_OPAQUE, 2, 256);
+			Archipelago::APHandler.handle_single_msg();
 			Waitframe();
 		}
 	}
 }
 
-
-
-bool ignore_next_location_scout = false;
 namespace Archipelago::Settings
 {
 	void ap_get_game(char32 buf) //Return your game name
