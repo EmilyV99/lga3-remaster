@@ -2055,6 +2055,7 @@ void get_location_data(char32 name, LocationAction action)
 		{
 			md = Game->LoadMapData(1, 0x2E);
 			ty[0] = LOCTY_SPECIALITEM;
+			md->RoomType = RT_SPECIALITEM;
 			break;
 		}
 		case "Traction Boots":
