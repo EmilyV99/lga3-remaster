@@ -140,6 +140,33 @@ global script onLaunch
 		first_launch = false;
 	}
 }
+global script Active
+{
+	void load_gdatas(genericdata arr, char32 name_arr)
+	{
+		for(name : name_arr)
+		{
+			if(int scr = CheckGenericScript(name))
+				if(auto gd = RunGenericScript(scr))
+					ArrayPushBack(arr, gd);
+		}
+	}
+	void run()
+	{
+		until(archipelago_mode)
+			Waitframe();
+		genericdata gdatas[0];
+		load_gdatas(gdatas, {"AP_Pickup_Runner","AP_ScreenChange_Runner","AP_ItemCollect_Handler",
+			"DayNight", "updateSubscr", "MagicRock", "MagicRockEvt", "icePhysics"});
+		while(true)
+		{
+			for(gd : gdatas)
+				unless(gd->Running)
+					gd->Running = true;
+			Waitframe();
+		}
+	}
+}
 
 int refill_shops = 0;
 int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
