@@ -2018,6 +2018,7 @@ void get_location_data(char32 name, LocationAction action)
 					md->FFCDelay[5] = md->FFCDelay[4];
 					md->FFCX[5] = md->FFCX[4];
 					md->FFCY[5] = md->FFCY[4];
+					md->FFCFlags[5] = md->FFCFlags[4];
 					md->FFCScript[5] = md->FFCScript[4];
 					for(int ind = 0; ind < 8; ++ind)
 						md->SetFFCInitD(5, ind, md->GetFFCInitD(4, ind));
