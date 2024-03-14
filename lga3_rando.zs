@@ -1169,27 +1169,29 @@ generic script AP_ScreenChange_Runner
 		while(Game->CurScreen >= 0x80)
 			Waitframe();
 		Screen->ItemSFX = 0;
-		itemdata ids[AP_DUMMY_COUNT];
 		get_ap_locs(locs);
 		for(int q = 0; q < AP_DUMMY_COUNT; ++q)
 		{
-			unless(locs[q])
-				continue;
-			NetworkPlayer plyr = players[locs[q]->player_id-1];
-			NetworkSlot slot = slots[plyr->slot_id-1];
-			int visual_id = AP_HOLDUP_ITEM;
-			auto cur_plyr = players[ap_player_id-1];
-			auto cur_slot = slots[cur_plyr->slot_id-1];
-			unless(strcmp(slot->game,cur_slot->game))
+			itemdata idata;
+			if(locs[q])
 			{
-				int collected = 1;
-				if(locs[q]->player_id == ap_player_id)
-					collected += collected_item(locs[q]->localize_location_id());
-				int id = get_lga3_item(locs[q], collected);
-				if(id > -1)
-					visual_id = id;
+				NetworkPlayer plyr = players[locs[q]->player_id-1];
+				NetworkSlot slot = slots[plyr->slot_id-1];
+				int visual_id = AP_HOLDUP_ITEM;
+				auto cur_plyr = players[ap_player_id-1];
+				auto cur_slot = slots[cur_plyr->slot_id-1];
+				unless(strcmp(slot->game,cur_slot->game))
+				{
+					int collected = 1;
+					if(locs[q]->player_id == ap_player_id)
+						collected += collected_item(locs[q]->localize_item_id());
+					int id = get_lga3_item(locs[q], collected);
+					if(id > -1)
+						visual_id = id;
+				}
+				idata = Game->LoadItemData(visual_id);
 			}
-			itemdata idata = Game->LoadItemData(visual_id);
+			else idata = Game->LoadItemData(AP_HOLDUP_ITEM);
 			itemdata dummy = Game->LoadItemData(AP_DUMMY_START+q);
 			dummy->Tile = idata->Tile;
 			dummy->CSet = idata->CSet;
@@ -1231,9 +1233,12 @@ generic script AP_ItemCollect_Handler
 	}
 }
 
-void get_ap_locs(int locs)
+void get_ap_locs(Archipelago::NetworkItem locs)
 {
 	int key = (Game->CurMap << 8) + Game->CurScreen;
+	for(int q = 0; q < SizeOfArray(locs); ++q)
+		if(locs[q])
+			locs[q] = NULL; //don't 'delete', as 'find_loc' returns globally-owned objects
 	switch(key)
 	{
 		case 0x153:
