@@ -328,7 +328,7 @@ generic script updateSubscr
 				auto data = Game->LoadOSubData(0);
 				auto pg = data->Pages[0];
 				{ //dungeon prize
-					bool has_prize = Game->LItems[Game->CurLevel] & LI_TRIFORCE;
+					bool has_prize = !archipelago_mode && (Game->LItems[Game->CurLevel] & LI_TRIFORCE);
 					widg_vis(pg->GetWidget("prize"), has_prize);
 					widg_vis(pg->GetWidget("bosskey"), !has_prize);
 				}
