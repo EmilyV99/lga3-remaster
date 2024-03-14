@@ -627,6 +627,7 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 		case "Boss Key 6":
 		case "Boss Key 7":
 		case "Boss Key 8":
+		case "Boss Key 9":
 		{
 			sprintf(ptr, "%s", itm->item_name);
 			Game->LItems[itm->item_name[-2]-'0'] |= LI_BOSSKEY;
@@ -1040,6 +1041,7 @@ int get_lga3_item(Archipelago::NetworkItem itm, int number)
 		case "Boss Key 6":
 		case "Boss Key 7":
 		case "Boss Key 8":
+		case "Boss Key 9":
 		{
 			return 67;
 		}
