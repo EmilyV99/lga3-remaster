@@ -1272,8 +1272,9 @@ generic script AP_ItemCollect_Handler
 					continue;
 				NetworkItem itm = AP_ScreenChange_Runner.locs[dummy_id];
 				auto loc_id = itm->localize_location_id();
+				printf("Collecting item '%s' for %d from location '%s'\n", itm->item_name, itm->player_id, itm->location_name);
+				printf("Item was already collected? %s\n", checked_location(loc_id) ? "true" : "false");
 				collect_location(loc_id);
-				mark_location_checked(loc_id);
 			}
 		}
 	}
@@ -2857,7 +2858,10 @@ void collect_locations(int arr)
 	for(int q = 0; q < SizeOfArray(arr);)
 	{
 		if(Archipelago::checked_location(arr[q]))
+		{
+			printf("Skipping location %d, already collected\n", q);
 			ArrayPopAt(arr,q);
+		}
 		else
 			_collect_location_int(arr[q++]);
 	}
