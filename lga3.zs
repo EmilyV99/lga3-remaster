@@ -84,6 +84,12 @@ ffc script ItemShop
 			price *=.75;
 		bool ap_mode = ap_id;
 		itemdata idata = Game->LoadItemData(id);
+		if(ap_mode || shop_req_bit)
+		{
+			ffcvis(this, false);
+			Waitframe();
+			ffcvis(this, true);
+		}
 		if(ap_mode)
 		{
 			--ap_id;
