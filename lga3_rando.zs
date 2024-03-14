@@ -664,12 +664,13 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 	}
 	if(pickup_id > -1)
 	{
+		itemdata id = Game->LoadItemData(pickup_id);
+		id->MinHearts = 0;
 		itemsprite spr = Screen->CreateItem(pickup_id);
 		spr->ForceGrab = true;
 		spr->PickupString = 0;
 		spr->Pickup ~= IP_HOLDUP;
 		spr->NoSound = true;
-		itemdata id = Game->LoadItemData(pickup_id);
 		id->GetDisplayName(ptr);
 		char32 buf[1];
 		sprintf(buf,"Slot %d", id->Attributes[0]);
