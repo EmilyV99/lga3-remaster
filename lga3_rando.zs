@@ -2854,6 +2854,8 @@ generic script AP_Connect_Menu
 		char32 port[] = "38281";
 		char32 slot[] = "";
 		char32 pwd[] = "";
+		sprintf(ip, "localhost");
+		sprintf(slot, "Player1");
 		if(Archipelago::ip[0])
 			sprintf(ip,"%s",Archipelago::ip);
 		if(Archipelago::port[0])
@@ -2861,6 +2863,7 @@ generic script AP_Connect_Menu
 		if(Archipelago::slot[0])
 			sprintf(slot,"%s",Archipelago::slot);
 		
+
 		char32 bufs[] = {ip, port, slot, pwd};
 		char32 lbl1[] = "IP:";
 		char32 lbl2[] = "Port:";
