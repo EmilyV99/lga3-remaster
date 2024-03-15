@@ -253,6 +253,7 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 		}
 		case "Progressive Bomb Bag":
 		{
+			Hero->Item[143] = true; //'Bomb Bag: Menu', menu dummy item
 			switch(number)
 			{
 				case 1:
@@ -2806,11 +2807,12 @@ void handle_ap_placements()
 	unless(archipelago_mode) return;
 	if(first_launch)
 	{
-		Hero->Item[5] = false;
-		Hero->Item[13] = false;
-		Hero->Item[81] = false;
-		Hero->Item[115] = false;
-		Hero->Item[93] = false;
+		Hero->Item[5] = false; //L1 Sword
+		Hero->Item[13] = false; //L1 Arrows
+		Hero->Item[81] = false; //L1 Bomb Bag
+		Hero->Item[115] = false; //L1 Magic Ring
+		Hero->Item[93] = false; //L1 Shield
+		Hero->Item[143] = false; //'Bomb Bag: Menu' dummy item
 		Game->MCounter[CR_BOMBS] = 0;
 	}
 	int start_locs[0];
