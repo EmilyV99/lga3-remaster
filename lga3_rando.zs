@@ -26,6 +26,7 @@ global script onLaunch
 	char32 cache_seed[1], cache_slot[1];
 	void run()
 	{
+		Game->FFRules[qr_TRACESCRIPTIDS] = Archipelago::AP_DEV_LOG;
 		const int real_fh = Text->FontHeight(FONT);
 		const int fh = real_fh+4;
 		const int Y1 = MID_Y - 1*fh;
@@ -1121,7 +1122,7 @@ void remote_item(Archipelago::NetworkItem itm)
 	HoldUpItem(id, 0);
 	Audio->PlaySound(SFX_JINGLE);
 
-	sprintf(buf, "You found %s's '%s'!", slot->name, itm->item_name);
+	sprintf(buf, "You found %s's '%s' at %s!", slot->name, itm->item_name, itm->location_name);
 	popup_msg(buf);
 }
 
@@ -1273,8 +1274,11 @@ generic script AP_ItemCollect_Handler
 					continue;
 				NetworkItem itm = AP_ScreenChange_Runner.locs[dummy_id];
 				auto loc_id = itm->localize_location_id();
-				printf("Collecting item '%s' for %d from location '%s'\n", itm->item_name, itm->player_id, itm->location_name);
-				printf("Item was already collected? %s\n", checked_location(loc_id) ? "true" : "false");
+				if(Archipelago::AP_DEV_LOG)
+				{
+					printf("[DEV] Collecting item '%s' for %d from location '%s'\n", itm->item_name, itm->player_id, itm->location_name);
+					printf("[DEV] Item was already collected? %s\n", checked_location(loc_id) ? "true" : "false");
+				}
 				collect_location(loc_id);
 			}
 		}
@@ -2861,7 +2865,8 @@ void collect_locations(int arr)
 	{
 		if(Archipelago::checked_location(arr[q]))
 		{
-			printf("Skipping location %d, already collected\n", q);
+			if(Archipelago::AP_DEV_LOG)
+				printf("[DEV] Skipping location %d, already collected\n", q);
 			ArrayPopAt(arr,q);
 		}
 		else
