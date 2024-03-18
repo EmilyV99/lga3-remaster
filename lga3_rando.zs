@@ -550,7 +550,7 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 		case "Half Magic":
 		{
 			Game->Generic[GEN_MAGICDRAINRATE] = 1;
-			holdup_id = 58;
+			holdup_id = 172;
 			break;
 		}
 		case "Triforce Fragment":
@@ -990,7 +990,7 @@ int get_lga3_item(Archipelago::NetworkItem itm, int number)
 		}
 		case "Half Magic":
 		{
-			return 58;
+			return 172;
 		}
 		case "Triforce Fragment":
 		{
