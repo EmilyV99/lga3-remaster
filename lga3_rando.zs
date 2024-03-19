@@ -1296,12 +1296,11 @@ generic script AP_ScreenChange_Runner
 	NetworkItem locs[AP_DUMMY_COUNT];
 	void run()
 	{
+		this->ReloadState[GENSCR_ST_CHANGE_SCREEN] = true;
+		Screen->ItemSFX = 0;
+		do Waitframe(); while(Game->CurScreen >= 0x80);
 		if(Game->CurMap == 3 && Game->CurScreen == 0x0C)
 			Archipelago::send_status_update(Archipelago::CLIENT_GOAL);
-		this->ReloadState[GENSCR_ST_CHANGE_SCREEN] = true;
-		while(Game->CurScreen >= 0x80)
-			Waitframe();
-		Screen->ItemSFX = 0;
 		get_ap_locs(locs);
 		for(int q = 0; q < AP_DUMMY_COUNT; ++q)
 		{
