@@ -160,14 +160,14 @@ global script Active
 	{
 		until(archipelago_mode)
 			Waitframe();
-		genericdata gdatas[0];
-		load_gdatas(gdatas, {"AP_Pickup_Runner","AP_ScreenChange_Runner","AP_ItemCollect_Handler",
-			"DayNight", "updateSubscr", "MagicRock", "MagicRockEvt", "icePhysics"});
+		if(int scr = CheckGenericScript("AP_Pickup_Runner"))
+			RunGenericScript(scr);
+		if(int scr = CheckGenericScript("AP_ScreenChange_Runner"))
+			RunGenericScript(scr);
+		if(int scr = CheckGenericScript("AP_ItemCollect_Handler"))
+			RunGenericScript(scr);
 		while(true)
 		{
-			for(gd : gdatas)
-				unless(gd->Running)
-					gd->Running = true;
 			Waitframe();
 		}
 	}
