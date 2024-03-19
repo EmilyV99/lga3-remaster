@@ -226,6 +226,20 @@ void set_easier_grinding()
 	dropsets[12]->Chances[4] *= 4;
 	dropsets[12]->Chances[5] *= 4;
 }
+
+void fill_bottle(int btype)
+{
+	int bottle_count = GetHighestLevelItemOwned(IC_BOTTLE);
+	for(int q = 0; q < bottle_count; ++q)
+	{
+		unless(Game->BottleState[q])
+		{
+			Game->BottleState[q] = btype;
+			return;
+		}
+	}
+}
+
 int refill_shops = 0;
 int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 {
@@ -293,6 +307,14 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 				case 4: default:
 					pickup_id = 148;
 					break;
+			}
+			unless(Hero->Item[167])
+			{
+				itemsprite spr = Screen->CreateItem(167);
+				spr->ForceGrab = true;
+				spr->PickupString = 0;
+				spr->Pickup |= IP_HOLDUP;
+				spr->NoSound = true;
 			}
 			break;
 		}
@@ -619,19 +641,22 @@ int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 		case "Potion (Red)":
 		{
 			refill_shops |= 0001b;
-			pickup_id = 149;
+			fill_bottle(1);
+			holdup_id = 149;
 			break;
 		}
 		case "Potion (Green)":
 		{
 			refill_shops |= 0010b;
-			pickup_id = 150;
+			fill_bottle(2);
+			holdup_id = 150;
 			break;
 		}
 		case "Potion (Blue)":
 		{
 			refill_shops |= 0100b;
-			pickup_id = 151;
+			fill_bottle(3);
+			holdup_id = 151;
 			break;
 		}
 		case "Bomb Ammo x4":
