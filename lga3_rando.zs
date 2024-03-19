@@ -1355,6 +1355,12 @@ generic script AP_ItemCollect_Handler
 				if(dummy_id < 0 || dummy_id >= AP_DUMMY_COUNT)
 					continue;
 				NetworkItem itm = AP_ScreenChange_Runner.locs[dummy_id];
+				unless(itm)
+				{
+					if(Archipelago::AP_LOG)
+						printf("[ERR] Invalid pickup location '%dx%02X'[%d]\n", Game->CurMap, Game->CurScreen, dummy_id);
+					continue;
+				}
 				auto loc_id = itm->localize_location_id();
 				if(Archipelago::AP_DEV_LOG)
 				{
