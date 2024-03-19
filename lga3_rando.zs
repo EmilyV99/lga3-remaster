@@ -1217,10 +1217,10 @@ void popup_msg(char32 buf)
 
 generic script AP_Pickup_Runner
 {
+	int got_ganon_msg = 0;
 	void run()
 	{
 		int delay = 30;
-		int got_ganon_msg = 0;
 		while(true)
 		{
 			Waitframe();
@@ -1277,9 +1277,12 @@ generic script AP_Pickup_Runner
 				{
 					if(Hero->Item[15] && Game->MCounter[CR_ARROWS] && (Hero->Item[14] || Hero->Item[57])) //Bow + Quiver + Silver Arrows
 					{
-						//(L2 Sword + Bow + Quiver + L2 Arrows + 8 Triforce Fragments)
-						popup_msg("You now have access to the final boss, in the east of the desert.");
-						got_ganon_msg = 2;
+						if(Game->LItems[9] & LI_BOSSKEY) //L9 bosskey
+						{
+							//(L2 Sword + Bow + Quiver + L2 Arrows + 8 Triforce Fragments)
+							popup_msg("You now have access to the final boss, in the east of the desert.");
+							got_ganon_msg = 2;
+						}
 					}
 				}
 			}
