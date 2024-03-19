@@ -15,6 +15,14 @@ CONFIG AP_DUMMY_COUNT = 4;
 bool first_launch = true;
 bool archipelago_mode = false;
 bool is_easier_grinding = false;
+enum Goal
+{
+	GOAL_GANON,
+	GOAL_100,
+	GOAL_100_GANON,
+	NUM_GOALS
+};
+Goal archipelago_goal;
 global script onLaunch
 {
 	CONFIG FONT = FONT_Z1;
@@ -1210,14 +1218,22 @@ void remote_item(Archipelago::NetworkItem itm)
 
 void popup_msg(char32 buf)
 {
+	while(Screen->ShowingMessage)
+		Waitframe();
 	messagedata md = Game->LoadMessageData(61);
 	md->Set(buf);
 	Screen->Message(61);
 }
+void popup_msg_wait(char32 buf)
+{
+	popup_msg(buf);
+	while(Screen->ShowingMessage)
+		Waitframe();
+}
 
 generic script AP_Pickup_Runner
 {
-	int got_ganon_msg = 0;
+	int got_end_msg = 0;
 	void run()
 	{
 		int delay = 30;
@@ -1266,27 +1282,72 @@ generic script AP_Pickup_Runner
 				delete recvinfo;
 			}
 			else delay = 0;
-			if((Game->LItems[8] & LI_TRIFORCE) && got_ganon_msg < 2)
+			if((Game->LItems[8] & LI_TRIFORCE) && got_end_msg < 1) // Access to Level 9
 			{
-				if(got_ganon_msg < 1)
+				Screen->Message(36);
+				got_end_msg = 1;
+			}
+			if(got_end_msg == 1)
+			{
+				switch(archipelago_goal)
 				{
-					Screen->Message(36);
-					got_ganon_msg = 1;
-				}
-				if(Hero->Item[6] || Hero->Item[7] || Hero->Item[36]) //L2+ Sword
-				{
-					if(Hero->Item[15] && Game->MCounter[CR_ARROWS] && (Hero->Item[14] || Hero->Item[57])) //Bow + Quiver + Silver Arrows
-					{
-						if(Game->LItems[9] & LI_BOSSKEY) //L9 bosskey
+					case GOAL_100_GANON:
+						unless(Archipelago::checked_all_locations())
+							break;
+						//fallthrough
+					case GOAL_GANON:
+						if(Hero->Item[6] || Hero->Item[7] || Hero->Item[36]) //L2+ Sword
 						{
-							//(L2 Sword + Bow + Quiver + L2 Arrows + 8 Triforce Fragments)
-							popup_msg("You now have access to the final boss, in the east of the desert.");
-							got_ganon_msg = 2;
+							if(Hero->Item[15] && Game->MCounter[CR_ARROWS] && (Hero->Item[14] || Hero->Item[57])) //Bow + Quiver + Silver Arrows
+							{
+								if(Game->LItems[9] & LI_BOSSKEY) //L9 bosskey
+								{
+									//(L2 Sword + Bow + Quiver + L2 Arrows + 8 Triforce Fragments + bosskey)
+									popup_msg("You now have access to the final boss, in the east of the desert.");
+									got_end_msg = 2;
+								}
+							}
 						}
-					}
+						break;
+					case GOAL_100:
+						if(Archipelago::checked_all_locations())
+						{
+							win();
+							popup_msg_wait("You completed your goal of collecting all locations!");
+							warp_to_credits();
+							got_end_msg = 2;
+						}
+						break;
 				}
 			}
 		}
+	}
+}
+
+bool won;
+void warp_to_credits()
+{
+	unless(Game->CurMap == 3 && Game->CurScreen == 0x0C)
+		Hero->WarpEx({WT_IWARP,15,0x04,-1,0,WARPEFFECT_NONE,0,0});
+}
+void win()
+{
+	unless(won)
+	{
+		Archipelago::send_status_update(Archipelago::CLIENT_GOAL);
+		won = true;
+	}
+}
+void check_win()
+{
+	if(Game->CurMap == 3 && Game->CurScreen == 0x0C)
+		win();
+	else switch(archipelago_goal)
+	{
+		case GOAL_100:
+			if(Archipelago::checked_all_locations())
+				win();
+			break;
 	}
 }
 
@@ -1299,8 +1360,7 @@ generic script AP_ScreenChange_Runner
 		this->ReloadState[GENSCR_ST_CHANGE_SCREEN] = true;
 		Screen->ItemSFX = 0;
 		do Waitframe(); while(Game->CurScreen >= 0x80);
-		if(Game->CurMap == 3 && Game->CurScreen == 0x0C)
-			Archipelago::send_status_update(Archipelago::CLIENT_GOAL);
+		check_win();
 		get_ap_locs(locs);
 		for(int q = 0; q < AP_DUMMY_COUNT; ++q)
 		{
@@ -1371,6 +1431,38 @@ generic script AP_ItemCollect_Handler
 				}
 				collect_location(loc_id);
 			}
+		}
+	}
+}
+
+ffc script goal_blocker
+{
+	void clear_blocker(ffc this)
+	{
+		this->X = this->Y = 0;
+		this->Data = 0;
+		Quit();
+	}
+	void run()
+	{
+		unless(archipelago_mode)
+			clear_blocker(this);
+		switch(archipelago_goal)
+		{
+			case GOAL_GANON: default:
+				clear_blocker(this);
+				break;
+			case GOAL_100:
+				until(Archipelago::checked_all_locations())
+					Waitframe();
+				Screen->SideWarpID[DIR_UP] = SIDEWARP_A;
+				clear_blocker(this);
+				break;
+			case GOAL_100_GANON:
+				until(Archipelago::checked_all_locations())
+					Waitframe();
+				clear_blocker(this);
+				break;
 		}
 	}
 }
@@ -3134,7 +3226,7 @@ generic script AP_Connect_Menu
 		} until(Archipelago::ap_connect(ip, port, slot, pwd));
 
 		char32 wait_msg[] = "Connecting; please wait...";
-
+		
 		while(Archipelago::sock && Archipelago::status < Archipelago::STATUS_DATA_LOADED)
 		{
 			ColorScreen(7, 0x0F, true);
@@ -3171,6 +3263,12 @@ namespace Archipelago::Settings
 		if(r->sub_find({NULL,{"slot_data","easier_grinding"}}))
 			if(r->get_bool())
 				set_easier_grinding();
+		r->from(ref);
+		if(r->sub_find({NULL,{"slot_data","goal"}}))
+			archipelago_goal = <Goal>(r->get_int());
+		else archipelago_goal = GOAL_GANON;
+		if(archipelago_goal < 0 || archipelago_goal >= NUM_GOALS)
+			archipelago_goal = GOAL_GANON;
 		delete r;
 	}
 	void on_item_received(NetworkItem itm, int total_count)

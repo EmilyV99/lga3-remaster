@@ -44,7 +44,9 @@ Related links:\
 - Shops
   - Shops logically require that you have the ability to grind money (see Ammo/Grinding above), and that you can hold enough money to purchase the item. This logically accounts for both Wallet upgrades to increase your max money, and Coupon upgrades to reduce shop prices. (One wallet upgrade is enough to unlock every shop item in the game; but with 0 wallets, some items may require either 0, 1, 2, or 3 coupons)
 - Victory
-  - Goal: Standard - Defeat Ganon in Level 9, and progress to the credits in the next room. Requirements: L2 Sword, L2 Arrows (and ability to fire them), all 8 Triforce Fragments, and meet the "To enter Level 9" requirements in the "Basic combat" section above.
+  - Goal: Ganon - Defeat Ganon in Level 9, and progress to the credits in the next room. Requirements: L2 Sword, L2 Arrows (and ability to fire them), all 8 Triforce Fragments, and meet the "To enter Level 9" requirements in the "Basic combat" section above.
+  - Goal: Hundred Percent - Collect every single location in your game
+  - Goal: Hundred Percent Ganon - Collect every single location, then defeat Ganon
 
 ### Changes from vanilla
 - 101 to 145 (depending on settings) item locations are randomized. (The `Scroll Holder`, which does nothing but status-check your currently known sword techniques, is not randomized; neither are the Green Tunic or Green Wallet, which are just inventory stand-ins for having no upgrades yet)
