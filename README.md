@@ -27,6 +27,10 @@ Related links:\
 - Easier Grinding: Improve loot tables and drop rates to decrease grind
 - DeathLink: Should dying in your game kill other players playing with you? (If they also have this setting on)
 - DeathLink Amnesty: If using DeathLink, allow yourself to die this many times without sending a death
+- Goal: How do you win?
+  - 'ganon': Defeat Ganon in Level 9, and progress to the credits in the next room. Requirements: L2 Sword, L2 Arrows (and ability to fire them), all 8 Triforce Fragments, and meet the "To enter Level 9" requirements in the "Basic combat" section above.
+  - 'hundred_percent': Collect every single location in your game
+  - 'hundred_percent_ganon': Collect every single location, then defeat Ganon
 
 ### Logical access requirements:
 - Basic combat
@@ -43,10 +47,6 @@ Related links:\
   - In your options, you can set "magic_rock_for_kill_all". If enabled, most Kill All Enemies -> Spawn an Item rooms will logically require the Magic Rock item (which, after standing in a room for a bit, will give you a notification if there is a secret hidden there). Notably, Boss Rooms of dungeons do not follow this requirement, and things which require killing all enemies to open a *DOOR* do not follow this requirement (only things that spawn an item in the room)
 - Shops
   - Shops logically require that you have the ability to grind money (see Ammo/Grinding above), and that you can hold enough money to purchase the item. This logically accounts for both Wallet upgrades to increase your max money, and Coupon upgrades to reduce shop prices. (One wallet upgrade is enough to unlock every shop item in the game; but with 0 wallets, some items may require either 0, 1, 2, or 3 coupons)
-- Victory
-  - Goal: Ganon - Defeat Ganon in Level 9, and progress to the credits in the next room. Requirements: L2 Sword, L2 Arrows (and ability to fire them), all 8 Triforce Fragments, and meet the "To enter Level 9" requirements in the "Basic combat" section above.
-  - Goal: Hundred Percent - Collect every single location in your game
-  - Goal: Hundred Percent Ganon - Collect every single location, then defeat Ganon
 
 ### Changes from vanilla
 - 101 to 145 (depending on settings) item locations are randomized. (The `Scroll Holder`, which does nothing but status-check your currently known sword techniques, is not randomized; neither are the Green Tunic or Green Wallet, which are just inventory stand-ins for having no upgrades yet)
