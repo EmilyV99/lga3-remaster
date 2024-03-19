@@ -14,6 +14,7 @@ CONFIG AP_DUMMY_START = 240;
 CONFIG AP_DUMMY_COUNT = 4;
 bool first_launch = true;
 bool archipelago_mode = false;
+bool is_easier_grinding = false;
 global script onLaunch
 {
 	CONFIG FONT = FONT_Z1;
@@ -36,6 +37,9 @@ global script onLaunch
 		const int NUM_OPTS = 2;
 		int sel = 0;
 		bool end = false;
+
+		is_easier_grinding = false;
+
 		Waitframe();
 		if(first_launch)
 		{
@@ -169,6 +173,59 @@ global script Active
 	}
 }
 
+void set_easier_grinding()
+{
+	if(is_easier_grinding) return;
+	is_easier_grinding = true;
+	dropsetdata dropsets[13];
+	for(int q = 0; q < 13; ++q)
+		dropsets[q] = Game->LoadDropset(q);
+	//Default
+	dropsets[1]->Items[1] = 39; //10r -> 50r
+	dropsets[1]->Items[2] = 38; //5r -> 20r
+	dropsets[1]->Items[5] = 86; //1r -> 10r
+	dropsets[1]->Chances[1] *= 4;
+	dropsets[1]->Chances[2] *= 4;
+	dropsets[1]->Chances[5] *= 4;
+	//Bombs
+	dropsets[2]->Chances[6] *= 5; //Increase Super Bomb droprate
+	//Money
+	dropsets[3]->Items[1] = 86; //1r -> 10r
+	dropsets[3]->Items[2] = 38; //5r -> 20r
+	dropsets[3]->Items[3] = 39; //10r -> 50r
+	dropsets[3]->Items[4] = 87; //20r -> 100r
+	dropsets[3]->Chances[1] *= 4;
+	dropsets[3]->Chances[2] *= 4;
+	dropsets[3]->Chances[3] *= 4;
+	dropsets[3]->Chances[4] *= 4;
+	//Much Money
+	dropsets[7]->Items[0] = 86; //1r -> 10r
+	dropsets[7]->Items[1] = 38; //5r -> 20r
+	dropsets[7]->Items[2] = 39; //10r -> 50r
+	dropsets[7]->Items[3] = 87; //20r -> 100r
+	dropsets[7]->Items[4] = 171; //50r -> 500r
+	dropsets[7]->Chances[0] *= 4;
+	dropsets[7]->Chances[1] *= 4;
+	dropsets[7]->Chances[2] *= 4;
+	dropsets[7]->Chances[3] *= 4;
+	dropsets[7]->Chances[4] *= 4;
+	//Everything
+	dropsets[8]->Items[3] = 86; //1r -> 10r
+	dropsets[8]->Items[4] = 38; //5r -> 20r
+	dropsets[8]->Items[5] = 39; //20r -> 50r
+	dropsets[8]->Items[6] = 87; //50r -> 100r
+	dropsets[8]->Chances[3] *= 4;
+	dropsets[8]->Chances[4] *= 4;
+	dropsets[8]->Chances[5] *= 4;
+	dropsets[8]->Chances[6] *= 4;
+	//Bushes
+	dropsets[12]->Items[3] = 38; //1r -> 20r
+	dropsets[12]->Items[4] = 39; //5r -> 50r
+	dropsets[12]->Items[5] = 87; //20r -> 100r
+	dropsets[12]->Chances[3] *= 4;
+	dropsets[12]->Chances[4] *= 4;
+	dropsets[12]->Chances[5] *= 4;
+}
 int refill_shops = 0;
 int silent_get_item(Archipelago::NetworkItem itm, int number, char32 buf = NULL)
 {
@@ -3062,6 +3119,11 @@ namespace Archipelago::Settings
 	void on_connected(JSONRef ref)
 	{
 		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connected
+		JSONRef r = new JSONRef(ref);
+		if(r->sub_find({NULL,{"slot_data","easier_grinding"}}))
+			if(r->get_bool())
+				set_easier_grinding();
+		delete r;
 	}
 	void on_item_received(NetworkItem itm, int total_count)
 	{
