@@ -1778,6 +1778,7 @@ enum LocationAction
 {
 	LOCAC_PLACEMENT,
 	LOCAC_REMOVE,
+	LOCAC_UNREMOVE,
 	NUM_LOCAC
 };
 void get_location_data(char32 name, LocationAction action)
@@ -2860,6 +2861,20 @@ void get_location_data(char32 name, LocationAction action)
 				}
 			}
 			break;
+		case LOCAC_UNREMOVE:
+			for(int q = 0; q < AP_DUMMY_COUNT; ++q)
+			{
+				switch(ty[q])
+				{
+					case LOCTY_SPECIALITEM:
+						md->State[ST_SPECIALITEM] = false;
+						break;
+					case LOCTY_ITEM:
+						md->State[ST_ITEM] = false;
+						break;
+				}
+			}
+			break;
 	}
 }
 void handle_ap_placements()
@@ -3173,6 +3188,12 @@ namespace Archipelago::Settings
 	{
 		//https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#SetReply
 		
+	}
+	void do_unremove_location(int id)
+	{
+		//forcibly mark this location as "not collected"
+		Archipelago::NetworkItem itm = Archipelago::check_location_info(id);
+		get_location_data(itm->location_name, LOCAC_UNREMOVE);
 	}
 	void do_remove_location(int id)
 	{
