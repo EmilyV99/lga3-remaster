@@ -1279,7 +1279,6 @@ generic script AP_Pickup_Runner
 				if(recvinfo->player_id == Archipelago::ap_player_id)
 					self_item(recvinfo, recvd_count);
 				else get_item(recvinfo, recvd_count);
-				delete recvinfo;
 			}
 			else delay = 0;
 			if((Game->LItems[8] & LI_TRIFORCE) && got_end_msg < 1) // Access to Level 9
@@ -1361,6 +1360,7 @@ generic script AP_ScreenChange_Runner
 		Screen->ItemSFX = 0;
 		do Waitframe(); while(Game->CurScreen >= 0x80);
 		check_win();
+		//printf("locs is %d\n", locs);
 		get_ap_locs(locs);
 		for(int q = 0; q < AP_DUMMY_COUNT; ++q)
 		{
@@ -1467,12 +1467,12 @@ ffc script goal_blocker
 	}
 }
 
-void get_ap_locs(Archipelago::NetworkItem locs)
+void get_ap_locs(Archipelago::NetworkItem[] locs)
 {
 	int key = (Game->CurMap << 8) + Game->CurScreen;
 	for(int q = 0; q < SizeOfArray(locs); ++q)
 		if(locs[q])
-			locs[q] = NULL; //don't 'delete', as 'find_loc' returns globally-owned objects
+			locs[q] = NULL;
 	switch(key)
 	{
 		case 0x153:
@@ -1688,7 +1688,7 @@ void get_ap_locs(Archipelago::NetworkItem locs)
 		case 0x426:
 			locs[0] = find_loc("L4 Dungeon Reward");
 			break;
-		case 0x56D:
+		case 0x57B:
 			locs[0] = find_loc("L5 KillAll: Compass");
 			break;
 		case 0x57A:
@@ -1703,7 +1703,7 @@ void get_ap_locs(Archipelago::NetworkItem locs)
 		case 0x56C:
 			locs[0] = find_loc("L5 KillAll: Escape Spell");
 			break;
-		case 0x57B:
+		case 0x56D:
 			locs[0] = find_loc("L5 KillAll: Bottle");
 			break;
 		case 0x57D:
@@ -3269,7 +3269,6 @@ namespace Archipelago::Settings
 		else archipelago_goal = GOAL_GANON;
 		if(archipelago_goal < 0 || archipelago_goal >= NUM_GOALS)
 			archipelago_goal = GOAL_GANON;
-		delete r;
 	}
 	void on_item_received(NetworkItem itm, int total_count)
 	{
